@@ -1,0 +1,16 @@
+{
+  "name": "tauri-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  },
+  "dependencies": {
+    "htmx.org": "^1.9.12",
+    "tauri-plugin-htmx": "^1.0.1"
+  }
+}
