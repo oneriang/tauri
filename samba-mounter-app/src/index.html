@@ -1,39 +1,45 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="styles.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
-    <script type="module" src="/main.js" defer></script>
-  </head>
-
-  <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
-
-      <div class="row">
-        <a href="https://tauri.app" target="_blank">
-          <img src="/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
-        </a>
-        <a
-          href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
-          target="_blank"
-        >
-          <img
-            src="/assets/javascript.svg"
-            class="logo vanilla"
-            alt="JavaScript logo"
-          />
-        </a>
-      </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
-
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
-    </main>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Samba 挂载工具</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Samba 文件夹挂载</h1>
+        
+        <div class="form-group">
+            <label for="server">服务器地址:</label>
+            <input type="text" id="server" placeholder="例如: //192.168.1.100/share">
+        </div>
+        
+        <div class="form-group">
+            <label for="username">用户名:</label>
+            <input type="text" id="username">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">密码:</label>
+            <input type="password" id="password">
+        </div>
+        
+        <div class="form-group">
+            <label for="mountpoint">挂载点 (可选):</label>
+            <input type="text" id="mountpoint" placeholder="例如: /mnt/samba (Linux/macOS) 或 Z: (Windows)">
+        </div>
+        
+        <div class="buttons">
+            <button id="mountBtn">挂载</button>
+            <button id="unmountBtn">卸载</button>
+            <button id="listBtn">列出已挂载</button>
+        </div>
+        
+        <div id="status"></div>
+        <div id="mountedList"></div>
+    </div>
+    
+    <script src="main.js"></script>
+</body>
 </html>
