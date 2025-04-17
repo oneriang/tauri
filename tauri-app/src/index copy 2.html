@@ -15,42 +15,7 @@
 <body>
   <main class="container mx-auto">
     <h1>Welcome to Tauri</h1>
-    <div class="mx-auto">
-
-
-      <div class="container">
-        <h1>Samba 文件夹挂载</h1>
-        
-        <div class="form-group">
-            <label for="server">服务器地址:</label>
-            <input type="text" id="server" placeholder="例如: //192.168.1.100/share">
-        </div>
-        
-        <div class="form-group">
-            <label for="username">用户名:</label>
-            <input type="text" id="username">
-        </div>
-        
-        <div class="form-group">
-            <label for="password">密码:</label>
-            <input type="password" id="password">
-        </div>
-        
-        <div class="form-group">
-            <label for="mountpoint">挂载点 (可选):</label>
-            <input type="text" id="mountpoint" placeholder="例如: /mnt/samba (Linux/macOS) 或 Z: (Windows)">
-        </div>
-        
-        <div class="buttons">
-            <button id="mountBtn">挂载</button>
-            <button id="unmountBtn">卸载</button>
-            <button id="listBtn">列出已挂载</button>
-        </div>
-        
-        <div id="status"></div>
-        <div id="mountedList"></div>
-    </div>
-    
+    <div class="mx-auto w-4/6">
       <div class="flex flex-col gap-4">
         <button class="btn w-24" hx-post="command:greet2" hx-include="[name='search'], [name='email'], [name='username'], [name='password']" hx-trigger="click"
         hx-target="#greet-msg-2" hx-swap="innerHTML">Button</button>
