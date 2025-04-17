@@ -139,6 +139,7 @@ async fn create_todo(
 
     let new_id = Uuid::new_v4().to_string();
 
+    // 添加新Todo
     sqlx::query!(
         "INSERT INTO todos (id, title, completed) VALUES (?, ?, ?)",
         new_id,
@@ -149,13 +150,41 @@ async fn create_todo(
     .await
     .unwrap();
 
-    let new_todo = Todo {
-        id: new_id,
-        title: todo_data.title.clone(),
-        completed: false,
-    };
+    // 设置固定的分页参数 - 添加后显示第一页
+    let page = 1;  // 始终返回第一页
+    let per_page = 10;
+    let offset = 0;
 
-    let template = TodoItemTemplate { todo: new_todo };
+    // 获取总数
+    let total: i32 = sqlx::query_scalar!("SELECT COUNT(*) FROM todos")
+        .fetch_one(pool.get_ref())
+        .await
+        .unwrap();
+
+    // 获取分页数据
+    let todos = sqlx::query_as!(
+        Todo,
+        r#"SELECT id as "id!", title as "title!", completed FROM todos ORDER BY rowid DESC LIMIT ? OFFSET ?"#,
+        per_page,
+        offset
+    )
+    .fetch_all(pool.get_ref())
+    .await
+    .unwrap();
+
+    // 计算总页数
+    let total_pages = (total as f64 / per_page as f64).ceil() as i32;
+
+    let template = TodoListTemplate {
+        todos,
+        pagination: Pagination {
+            current_page: page,
+            per_page,
+            total,
+            total_pages,
+        },
+    };
+    
     HttpResponse::Ok()
         .content_type("text/html")
         .body(template.render().unwrap())
@@ -194,15 +223,65 @@ async fn update_todo(
 // 删除 Todo
 async fn delete_todo(
     pool: web::Data<SqlitePool>, 
-    todo_id: web::Path<String>
+    todo_id: web::Path<String>,
+    query: web::Query<PaginationParams>,
 ) -> impl Responder {
     let id = todo_id.into_inner();
+    
+    // 删除Todo
     sqlx::query!("DELETE FROM todos WHERE id = ?", id)
         .execute(pool.get_ref())
         .await
         .unwrap();
 
-    HttpResponse::Ok().finish()
+    // 获取当前页码
+    let page = query.page.unwrap_or(1);
+    let per_page = query.per_page.unwrap_or(10);
+    
+    // 获取总数
+    let total: i32 = sqlx::query_scalar!("SELECT COUNT(*) FROM todos")
+        .fetch_one(pool.get_ref())
+        .await
+        .unwrap();
+    
+    // 计算总页数
+    let total_pages = (total as f64 / per_page as f64).ceil() as i32;
+    
+    // 调整当前页码（如果当前页已空）
+    let current_page = if page > total_pages && total_pages > 0 {
+        total_pages
+    } else {
+        page
+    };
+    
+    // 计算偏移量
+    let offset = (current_page - 1) * per_page;
+    
+    // 获取更新后的分页数据
+    let todos = sqlx::query_as!(
+        Todo,
+        r#"SELECT id as "id!", title as "title!", completed FROM todos LIMIT ? OFFSET ?"#,
+        per_page,
+        offset
+    )
+    .fetch_all(pool.get_ref())
+    .await
+    .unwrap();
+    
+    // 渲染整个列表模板
+    let template = TodoListTemplate {
+        todos,
+        pagination: Pagination {
+            current_page,
+            per_page,
+            total,
+            total_pages,
+        },
+    };
+    
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(template.render().unwrap())
 }
 
 // 首页

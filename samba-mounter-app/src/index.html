@@ -1,10 +1,46 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Samba 挂载工具</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- 引入HTMX库 -->
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <!-- Tauri和HTMX的集成 -->
+    <script>
+    const {invoke} = window.__TAURI__.core;
+
+    const COMMAND_PREFIX = "command:";
+
+    const patchedSend = async function (params) {
+        // 使只读属性可写
+        Object.defineProperty(this, "readyState", {writable: true})
+        Object.defineProperty(this, "status", {writable: true})
+        Object.defineProperty(this, "statusText", {writable: true})
+        Object.defineProperty(this, "response", {writable: true})
+
+        // 设置响应
+        const query = new URLSearchParams(params);
+        this.response = await invoke(this.command, Object.fromEntries(query));
+        this.readyState = XMLHttpRequest.DONE;
+        this.status = 200;
+        this.statusText = "OK";
+
+        // 我们只需要触发load事件来启动XHR响应
+        this.dispatchEvent(new ProgressEvent("load"));
+    };
+
+    window.addEventListener("DOMContentLoaded", () => {
+        document.body.addEventListener('htmx:beforeSend', (event) => {
+            const path = event.detail.requestConfig.path;
+            if (path.startsWith(COMMAND_PREFIX)) {
+                event.detail.xhr.command = path.slice(COMMAND_PREFIX.length);
+                event.detail.xhr.send = patchedSend;
+            }
+        });
+    });
+    </script>
 </head>
 <body>
     <div class="container">
@@ -12,34 +48,78 @@
         
         <div class="form-group">
             <label for="server">服务器地址:</label>
-            <input type="text" id="server" placeholder="例如: //192.168.1.100/share">
+            <input type="text" id="server" name="server" placeholder="例如: //192.168.1.100/share" required>
         </div>
         
         <div class="form-group">
             <label for="username">用户名:</label>
-            <input type="text" id="username">
+            <input type="text" id="username" name="username">
         </div>
         
         <div class="form-group">
             <label for="password">密码:</label>
-            <input type="password" id="password">
+            <input type="password" id="password" name="password">
         </div>
         
         <div class="form-group">
             <label for="mountpoint">挂载点 (可选):</label>
-            <input type="text" id="mountpoint" placeholder="例如: /mnt/samba (Linux/macOS) 或 Z: (Windows)">
+            <input type="text" id="mountpoint" name="mountpoint" placeholder="例如: /mnt/samba (Linux/macOS) 或 Z: (Windows)">
         </div>
         
         <div class="buttons">
-            <button id="mountBtn">挂载</button>
-            <button id="unmountBtn">卸载</button>
-            <button id="listBtn">列出已挂载</button>
+            <button 
+                hx-post="command:mount_samba" 
+                hx-include="[name='server'],[name='username'],[name='password'],[name='mountpoint']" 
+                hx-target="#status"
+                hx-indicator="#mount-indicator">
+                挂载
+            </button>
+            <span id="mount-indicator" class="htmx-indicator">正在挂载...</span>
         </div>
         
-        <div id="status"></div>
-        <div id="mountedList"></div>
+        <div class="buttons">
+            <button 
+                hx-post="command:unmount_samba" 
+                hx-include="[name='mountpoint']" 
+                hx-target="#status"
+                hx-indicator="#unmount-indicator">
+                卸载
+            </button>
+            <span id="unmount-indicator" class="htmx-indicator">正在卸载...</span>
+            
+            <button 
+                hx-get="command:list_mounted" 
+                hx-target="#mountedList"
+                hx-indicator="#list-indicator">
+                列出已挂载
+            </button>
+            <span id="list-indicator" class="htmx-indicator">正在获取挂载列表...</span>
+        </div>
+        
+        <div id="status" class="status-message"></div>
+        <div id="mountedList" class="mounted-list"></div>
     </div>
-    
-    <script src="main.js"></script>
+
+    <!-- 处理列表显示的脚本 -->
+    <script>
+    document.body.addEventListener('htmx:afterOnLoad', function(event) {
+        // 仅处理list_mounted命令的响应
+        const targetId = event.detail.target.id;
+        if (targetId === 'mountedList') {
+            const data = event.detail.xhr.response;
+            const target = event.detail.target;
+            
+            if (Array.isArray(data)) {
+                if (data.length === 0) {
+                    target.innerHTML = '<p>没有已挂载的 Samba 共享</p>';
+                } else {
+                    target.innerHTML = '<h3>已挂载的 Samba 共享:</h3><ul>' + 
+                        data.map(m => `<li>${m.server} → ${m.mountpoint}</li>`).join('') + 
+                        '</ul>';
+                }
+            }
+        }
+    });
+    </script>
 </body>
 </html>

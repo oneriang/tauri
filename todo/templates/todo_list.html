@@ -63,10 +63,13 @@
           </div>
           <button class="btn btn-sm btn-error"
                   hx-delete="/todos/{{ todo.id }}"
-                  hx-target="#todo-{{ todo.id }}"
-                  hx-swap="outerHTML">
+                  hx-target="#todo-list"
+                  hx-swap="outerHTML"
+                  hx-trigger="click">
             Delete
           </button>
+          <button class="btn w-24" hx-post="command:greet2" hx-include="[name='search'], [name='email'], [name='username'], [name='password']" hx-trigger="click"
+        hx-target="#greet-msg-2" hx-swap="innerHTML">Button</button>
         </div>
       </div>
     </div>

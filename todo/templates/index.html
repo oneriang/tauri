@@ -95,24 +95,23 @@
         <div class="modal-box">
             <h3 class="font-bold text-lg">Add New Todo</h3>
             <form hx-post="/todos"
-                hx-target="#todo-list"
-                hx-swap="beforeend"
-                hx-on::after-request="
-                  this.reset();
-                  document.getElementById('add_todo_modal').close();
-                  htmx.trigger('body', 'todos-changed');
-                ">
-                <div class="form-control w-full">
-                    <label class="label">
-                        <span class="label-text">Title</span>
-                    </label>
-                    <input type="text" name="title" placeholder="What needs to be done?" class="input input-bordered w-full" required>
-                </div>
-                <div class="modal-action">
-                    <button type="button" class="btn" onclick="document.getElementById('add_todo_modal').close()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add</button>
-                </div>
-            </form>
+              hx-target="#todo-list"
+              hx-swap="outerHTML"
+              hx-on::after-request="
+                this.reset();
+                document.getElementById('add_todo_modal').close();
+              ">
+              <div class="form-control w-full">
+                  <label class="label">
+                      <span class="label-text">Title</span>
+                  </label>
+                  <input type="text" name="title" placeholder="What needs to be done?" class="input input-bordered w-full" required>
+              </div>
+              <div class="modal-action">
+                  <button type="button" class="btn" onclick="document.getElementById('add_todo_modal').close()">Cancel</button>
+                  <button type="submit" class="btn btn-primary">Add</button>
+              </div>
+          </form>
         </div>
     </dialog>
 </body>
