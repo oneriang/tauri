@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App</title>
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <!-- Tailwind & DaisyUI -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        [aria-checked="true"] .todo-text {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+    </style>
+    
+    <!-- 在 index.html 的 <head> 中添加样式 -->
+<style>
+  /* HTMX 请求期间的加载指示器 */
+  .htmx-request .loading-indicator {
+    display: inline-block;
+  }
+  .loading-indicator {
+    display: none;
+  }
+  
+  /* 按钮加载状态 */
+  button.htmx-request {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  
+  /* 表单加载状态 */
+  form.htmx-request {
+    position: relative;
+  }
+  form.htmx-request::after {
+    content: "Loading...";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+</style>
+
+<style>
+  .htmx-indicator {
+    opacity: 0;
+    transition: opacity 200ms ease-in;
+  }
+  .htmx-request .htmx-indicator {
+    opacity: 1;
+  }
+  
+  /* 分页加载动画 */
+  #todo-list.htmx-request {
+    position: relative;
+  }
+  #todo-list.htmx-request::after {
+    content: "Loading...";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+</style>
+</head>
+<body class="p-4 max-w-2xl mx-auto">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold">Todo App</h1>
+        <button class="btn btn-primary" onclick="document.getElementById('add_todo_modal').showModal()">
+            Add Todo
+        </button>
+    </div>
+
+    <!-- Todo List -->
+    <div id="todo-list" hx-get="/todos" hx-trigger="load, todos-changed from:body">
+        <div class="flex justify-center">
+            <span class="loading loading-spinner loading-lg"></span>
+        </div>
+    </div>
+
+    <!-- Add Todo Modal -->
+    <dialog id="add_todo_modal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg">Add New Todo</h3>
+            <form hx-post="/todos"
+                hx-target="#todo-list"
+                hx-swap="beforeend"
+                hx-on::after-request="
+                  this.reset();
+                  document.getElementById('add_todo_modal').close();
+                  htmx.trigger('body', 'todos-changed');
+                ">
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text">Title</span>
+                    </label>
+                    <input type="text" name="title" placeholder="What needs to be done?" class="input input-bordered w-full" required>
+                </div>
+                <div class="modal-action">
+                    <button type="button" class="btn" onclick="document.getElementById('add_todo_modal').close()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+</body>
+</html>
