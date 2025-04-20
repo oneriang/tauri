@@ -54,13 +54,15 @@ fn mount_samba_windows(server: &str, username: Option<&str>, password: Option<&s
     cmd.arg(mountpoint);
     cmd.arg(server);
     
-    if let Some(user) = username {
-        cmd.arg("/user:").arg(user);
-    }
-    
     if let Some(pass) = password {
         cmd.arg(pass);
     }
+
+    if let Some(user) = username {
+        cmd.arg(format!("/user:{}", user));
+    }
+
+    cmd.arg("/persistent:yes"); // 非永久挂载
     
     let output = cmd.output().map_err(|e| e.to_string())?;
     
@@ -139,7 +141,7 @@ fn mount_samba_linux(server: &str, username: Option<&str>, password: Option<&str
 
 // 卸载 Samba 共享
 #[tauri::command]
-fn unmount_samba(mountpoint: String) -> Result<(), String> {
+fn unmount_samba(mountpoint: String) -> Result<String, String> {
     if cfg!(target_os = "windows") {
         // Windows 卸载
         let output = Command::new("net")
@@ -148,9 +150,8 @@ fn unmount_samba(mountpoint: String) -> Result<(), String> {
             .arg("/delete")
             .output()
             .map_err(|e| e.to_string())?;
-            
         if output.status.success() {
-            Ok(())
+            Ok(format!("成功卸载 {}", mountpoint))
         } else {
             Err(String::from_utf8_lossy(&output.stderr).to_string())
         }
@@ -162,7 +163,7 @@ fn unmount_samba(mountpoint: String) -> Result<(), String> {
             .map_err(|e| e.to_string())?;
             
         if output.status.success() {
-            Ok(())
+            Ok(format!("已卸载 {}", mountpoint))
         } else {
             Err(String::from_utf8_lossy(&output.stderr).to_string())
         }
