@@ -67,6 +67,34 @@ struct ErrorTemplate {
     message: String,
 }
 
+// JSON 响应结构体
+#[derive(Serialize)]
+struct JsonResponse<T: Serialize> {
+    success: bool,
+    data: Option<T>,
+    error: Option<String>,
+}
+
+impl<T: Serialize> JsonResponse<T> {
+    fn success(data: T) -> Self {
+        Self {
+            success: true,
+            data: Some(data),
+            error: None,
+        }
+    }
+}
+
+impl JsonResponse<()> {
+    fn error(message: String) -> Self {
+        Self {
+            success: false,
+            data: None,
+            error: Some(message),
+        }
+    }
+}
+
 // 数据库连接池
 async fn get_db_pool() -> SqlitePool {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -78,23 +106,20 @@ async fn get_db_pool() -> SqlitePool {
     })
 }
 
-// 获取分页 Todo 列表
+// 获取分页 Todo 列表 (HTML)
 async fn get_todos(
     pool: web::Data<SqlitePool>,
     params: web::Query<PaginationParams>,
 ) -> impl Responder {
-    // 设置分页参数
     let page = params.page.unwrap_or(1);
     let per_page = params.per_page.unwrap_or(10);
     let offset = (page - 1) * per_page;
 
-    // 获取总数
     let total: i32 = sqlx::query_scalar!("SELECT COUNT(*) FROM todos")
         .fetch_one(pool.get_ref())
         .await
         .unwrap();
 
-    // 获取分页数据
     let todos = sqlx::query_as!(
         Todo,
         r#"SELECT id as "id!", title as "title!", completed FROM todos LIMIT ? OFFSET ?"#,
@@ -105,7 +130,6 @@ async fn get_todos(
     .await
     .unwrap();
 
-    // 计算总页数
     let total_pages = (total as f64 / per_page as f64).ceil() as i32;
 
     let template = TodoListTemplate {
@@ -123,7 +147,66 @@ async fn get_todos(
         .body(template.render().unwrap())
 }
 
-// 创建新 Todo
+// 获取分页 Todo 列表 (JSON)
+async fn get_todos_json(
+    pool: web::Data<SqlitePool>,
+    params: web::Query<PaginationParams>,
+) -> impl Responder {
+    let page = params.page.unwrap_or(1);
+    let per_page = params.per_page.unwrap_or(10);
+    let offset = (page - 1) * per_page;
+
+    let total: i32 = match sqlx::query_scalar!("SELECT COUNT(*) FROM todos")
+        .fetch_one(pool.get_ref())
+        .await
+    {
+        Ok(count) => count,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(JsonResponse::error(
+                format!("Database error: {}", e)
+            ));
+        }
+    };
+
+    let todos = match sqlx::query_as!(
+        Todo,
+        r#"SELECT id as "id!", title as "title!", completed FROM todos LIMIT ? OFFSET ?"#,
+        per_page,
+        offset
+    )
+    .fetch_all(pool.get_ref())
+    .await
+    {
+        Ok(todos) => todos,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(JsonResponse::error(
+                format!("Database error: {}", e)
+            ));
+        }
+    };
+
+    let total_pages = (total as f64 / per_page as f64).ceil() as i32;
+
+    #[derive(Serialize)]
+    struct PaginatedTodos {
+        todos: Vec<Todo>,
+        pagination: Pagination,
+    }
+
+    let data = PaginatedTodos {
+        todos,
+        pagination: Pagination {
+            current_page: page,
+            per_page,
+            total,
+            total_pages,
+        },
+    };
+
+    HttpResponse::Ok().json(JsonResponse::success(data))
+}
+
+// 创建新 Todo (HTML)
 async fn create_todo(
     pool: web::Data<SqlitePool>,
     todo_data: web::Form<CreateTodo>,
@@ -139,7 +222,6 @@ async fn create_todo(
 
     let new_id = Uuid::new_v4().to_string();
 
-    // 添加新Todo
     sqlx::query!(
         "INSERT INTO todos (id, title, completed) VALUES (?, ?, ?)",
         new_id,
@@ -150,18 +232,15 @@ async fn create_todo(
     .await
     .unwrap();
 
-    // 设置固定的分页参数 - 添加后显示第一页
-    let page = 1;  // 始终返回第一页
+    let page = 1;
     let per_page = 10;
     let offset = 0;
 
-    // 获取总数
     let total: i32 = sqlx::query_scalar!("SELECT COUNT(*) FROM todos")
         .fetch_one(pool.get_ref())
         .await
         .unwrap();
 
-    // 获取分页数据
     let todos = sqlx::query_as!(
         Todo,
         r#"SELECT id as "id!", title as "title!", completed FROM todos ORDER BY rowid DESC LIMIT ? OFFSET ?"#,
@@ -172,7 +251,6 @@ async fn create_todo(
     .await
     .unwrap();
 
-    // 计算总页数
     let total_pages = (total as f64 / per_page as f64).ceil() as i32;
 
     let template = TodoListTemplate {
@@ -190,7 +268,43 @@ async fn create_todo(
         .body(template.render().unwrap())
 }
 
-// 更新 Todo
+// 创建新 Todo (JSON)
+async fn create_todo_json(
+    pool: web::Data<SqlitePool>,
+    todo_data: web::Json<CreateTodo>,
+) -> impl Responder {
+    if todo_data.title.trim().is_empty() {
+        return HttpResponse::BadRequest().json(JsonResponse::error(
+            "Title cannot be empty".to_string()
+        ));
+    }
+
+    let new_id = Uuid::new_v4().to_string();
+
+    match sqlx::query!(
+        "INSERT INTO todos (id, title, completed) VALUES (?, ?, ?)",
+        new_id,
+        todo_data.title,
+        false,
+    )
+    .execute(pool.get_ref())
+    .await
+    {
+        Ok(_) => {
+            let new_todo = Todo {
+                id: new_id,
+                title: todo_data.title.clone(),
+                completed: false,
+            };
+            HttpResponse::Ok().json(JsonResponse::success(new_todo))
+        }
+        Err(e) => HttpResponse::InternalServerError().json(JsonResponse::error(
+            format!("Database error: {}", e)
+        )),
+    }
+}
+
+// 更新 Todo (HTML)
 async fn update_todo(
     pool: web::Data<SqlitePool>,
     todo_id: web::Path<String>,
@@ -220,7 +334,45 @@ async fn update_todo(
         .body(template.render().unwrap())
 }
 
-// 删除 Todo
+// 更新 Todo (JSON)
+async fn update_todo_json(
+    pool: web::Data<SqlitePool>,
+    todo_id: web::Path<String>,
+    todo_data: web::Json<UpdateTodo>,
+) -> impl Responder {
+    let id = todo_id.into_inner();
+    
+    match sqlx::query!(
+        "UPDATE todos SET title = ?, completed = ? WHERE id = ?",
+        todo_data.title,
+        todo_data.completed,
+        id,
+    )
+    .execute(pool.get_ref())
+    .await
+    {
+        Ok(result) => {
+            if result.rows_affected() == 0 {
+                return HttpResponse::NotFound().json(JsonResponse::error(
+                    "Todo not found".to_string()
+                ));
+            }
+
+            let updated_todo = Todo {
+                id: id.clone(),
+                title: todo_data.title.clone(),
+                completed: todo_data.completed,
+            };
+
+            HttpResponse::Ok().json(JsonResponse::success(updated_todo))
+        }
+        Err(e) => HttpResponse::InternalServerError().json(JsonResponse::error(
+            format!("Database error: {}", e)
+        )),
+    }
+}
+
+// 删除 Todo (HTML)
 async fn delete_todo(
     pool: web::Data<SqlitePool>, 
     todo_id: web::Path<String>,
@@ -228,36 +380,25 @@ async fn delete_todo(
 ) -> impl Responder {
     let id = todo_id.into_inner();
     
-    // 删除Todo
     sqlx::query!("DELETE FROM todos WHERE id = ?", id)
         .execute(pool.get_ref())
         .await
         .unwrap();
 
-    // 获取当前页码
     let page = query.page.unwrap_or(1);
     let per_page = query.per_page.unwrap_or(10);
-    
-    // 获取总数
     let total: i32 = sqlx::query_scalar!("SELECT COUNT(*) FROM todos")
         .fetch_one(pool.get_ref())
         .await
         .unwrap();
-    
-    // 计算总页数
     let total_pages = (total as f64 / per_page as f64).ceil() as i32;
-    
-    // 调整当前页码（如果当前页已空）
     let current_page = if page > total_pages && total_pages > 0 {
         total_pages
     } else {
         page
     };
-    
-    // 计算偏移量
     let offset = (current_page - 1) * per_page;
     
-    // 获取更新后的分页数据
     let todos = sqlx::query_as!(
         Todo,
         r#"SELECT id as "id!", title as "title!", completed FROM todos LIMIT ? OFFSET ?"#,
@@ -268,7 +409,6 @@ async fn delete_todo(
     .await
     .unwrap();
     
-    // 渲染整个列表模板
     let template = TodoListTemplate {
         todos,
         pagination: Pagination {
@@ -282,6 +422,32 @@ async fn delete_todo(
     HttpResponse::Ok()
         .content_type("text/html")
         .body(template.render().unwrap())
+}
+
+// 删除 Todo (JSON)
+async fn delete_todo_json(
+    pool: web::Data<SqlitePool>, 
+    todo_id: web::Path<String>,
+) -> impl Responder {
+    let id = todo_id.into_inner();
+    
+    match sqlx::query!("DELETE FROM todos WHERE id = ?", id)
+        .execute(pool.get_ref())
+        .await
+    {
+        Ok(result) => {
+            if result.rows_affected() == 0 {
+                return HttpResponse::NotFound().json(JsonResponse::error(
+                    "Todo not found".to_string()
+                ));
+            }
+
+            HttpResponse::Ok().json(JsonResponse::success(id))
+        }
+        Err(e) => HttpResponse::InternalServerError().json(JsonResponse::error(
+            format!("Database error: {}", e)
+        )),
+    }
 }
 
 // 首页
@@ -299,7 +465,7 @@ async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "info,actix_web=info,sqlx=warn");
     env_logger::init();
     
-    info!("Starting Todo application...");
+    info!("Starting DBM application...");
 
     // 加载环境变量
     dotenv::dotenv().ok();
@@ -310,7 +476,7 @@ async fn main() -> std::io::Result<()> {
     info!("Database pool created");
 
     // 创建并运行HTTP服务器
-    let server = HttpServer::new(move || {
+    HttpServer::new(move || {
         App::new()
             // CORS 中间件
             .wrap(
@@ -326,15 +492,19 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(pool.clone()))
             // 静态文件服务
             .service(Files::new("/static", "static"))
-            // 路由
+            // HTML 路由
             .service(index)
             .route("/todos", web::get().to(get_todos))
             .route("/todos", web::post().to(create_todo))
             .route("/todos/{id}", web::put().to(update_todo))
             .route("/todos/{id}", web::delete().to(delete_todo))
+            // JSON API 路由
+            .route("/api/todos", web::get().to(get_todos_json))
+            .route("/api/todos", web::post().to(create_todo_json))
+            .route("/api/todos/{id}", web::put().to(update_todo_json))
+            .route("/api/todos/{id}", web::delete().to(delete_todo_json))
     })
-    .bind("0.0.0.0:8000")?;
-    
-    info!("Server running on http://0.0.0.0:8000");
-    server.run().await
+    .bind("0.0.0.0:8000")?
+    .run()
+    .await
 }
