@@ -1,0 +1,50 @@
+<div id="todoList">
+    {% if todos.is_empty() %}
+        <div class="alert alert-info">No todos found. Add one above!</div>
+    {% else %}
+        <div class="list-group">
+            {% for todo in todos %}
+                {% include "crud_todo_item.html" %}
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+{% if pagination.total_pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if pagination.current_page > 1 %}
+        <li class="page-item">
+            <a class="page-link" 
+               hx-get="/crud/list?page={{ pagination.current_page - 1 }}" 
+               hx-target="#todoList" 
+               hx-swap="innerHTML">
+                &laquo; Previous
+            </a>
+        </li>
+        {% endif %}
+        
+        {% for page_num in 1..=pagination.total_pages %}
+        <li class="page-item {% if page_num == pagination.current_page %}active{% endif %}">
+            <a class="page-link" 
+               hx-get="/crud/list?page={{ page_num }}" 
+               hx-target="#todoList" 
+               hx-swap="innerHTML">
+                {{ page_num }}
+            </a>
+        </li>
+        {% endfor %}
+        
+        {% if pagination.current_page < pagination.total_pages %}
+        <li class="page-item">
+            <a class="page-link" 
+               hx-get="/crud/list?page={{ pagination.current_page + 1 }}" 
+               hx-target="#todoList" 
+               hx-swap="innerHTML">
+                Next &raquo;
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}

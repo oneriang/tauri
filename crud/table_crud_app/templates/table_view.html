@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ table_name }} - Table CRUD App</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Table: {{ table_name }}</h1>
+        
+        <div class="table-actions">
+            <button id="add-record-btn">Add Record</button>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    {% for column in columns %}
+                    <th>{{ column.name }} ({{ column.type_ }})</th>
+                    {% endfor %}
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    {% for column in columns %}
+                    <td>{{ record.fields[column.name] }}</td>
+                    {% endfor %}
+                    <td>
+                        <button class="edit-btn" data-id="{{ record.id }}">Edit</button>
+                        <button class="delete-btn" data-id="{{ record.id }}">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="pagination">
+            {% if pagination.current_page > 1 %}
+            <a href="?page={{ pagination.current_page - 1 }}&per_page={{ pagination.per_page }}">Previous</a>
+            {% endif %}
+            
+            <span>Page {{ pagination.current_page }} of {{ pagination.total_pages }}</span>
+            
+            {% if pagination.current_page < pagination.total_pages %}
+            <a href="?page={{ pagination.current_page + 1 }}&per_page={{ pagination.per_page }}">Next</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="record-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-title">Add Record</h2>
+            <form id="record-form">
+                {% for column in columns %}
+                {% if not column.primary_key %}
+                <div class="form-group">
+                    <label for="{{ column.name }}">{{ column.name }} ({{ column.type_ }})</label>
+                    <input type="text" id="{{ column.name }}" name="{{ column.name }}" 
+                           {% if not column.nullable %}required{% endif %}>
+                </div>
+                {% endif %}
+                {% endfor %}
+                <button type="submit">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

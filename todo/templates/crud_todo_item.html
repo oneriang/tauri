@@ -1,0 +1,34 @@
+<div class="list-group-item todo-item d-flex justify-content-between align-items-center {% if todo.completed %}completed{% endif %}" 
+     id="todo-{{ todo.id }}">
+    <div class="d-flex align-items-center">
+        <form hx-put="/todos/{{ todo.id }}" hx-target="#todo-{{ todo.id }}" hx-swap="outerHTML">
+            <input type="hidden" name="completed" value="{{ !todo.completed }}">
+            <button type="submit" class="btn btn-sm {% if todo.completed %}btn-outline-success{% else %}btn-outline-secondary{% endif %} me-2">
+                {% if todo.completed %}
+                    <i class="bi bi-check-square"></i>
+                {% else %}
+                    <i class="bi bi-square"></i>
+                {% endif %}
+            </button>
+        </form>
+        <span>{{ todo.title }}</span>
+    </div>
+    <div class="action-buttons">
+        <button class="btn btn-sm btn-outline-primary" 
+                data-bs-toggle="modal" 
+                data-bs-target="#editModal"
+                data-id="{{ todo.id }}" 
+                data-title="{{ todo.title }}" 
+                data-completed="{{ todo.completed }}">
+            <i class="bi bi-pencil"></i>
+        </button>
+        <form hx-delete="/todos/{{ todo.id }}" 
+              hx-target="#todo-{{ todo.id }}" 
+              hx-swap="outerHTML" 
+              class="d-inline">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-trash"></i>
+            </button>
+        </form>
+    </div>
+</div>

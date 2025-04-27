@@ -1,0 +1,92 @@
+<div id="todo-list">
+  <!-- 分页控制 -->
+  <div class="flex justify-between items-center mb-4">
+    <div class="join">
+      {% if pagination.current_page > 1 %}
+        <button class="join-item btn"
+                hx-get="/todos?page={{ pagination.current_page - 1 }}"
+                hx-target="#todo-list"
+                hx-swap="outerHTML">
+          «
+        </button>
+      {% endif %}
+      <button class="join-item btn">Page {{ pagination.current_page }}</button>
+      {% if pagination.current_page < pagination.total_pages %}
+        <button class="join-item btn"
+                hx-get="/todos?page={{ pagination.current_page + 1 }}"
+                hx-target="#todo-list"
+                hx-swap="outerHTML">
+          »
+        </button>
+      {% endif %}
+    </div>
+    <div class="text-sm text-gray-500">
+      {% set start = (pagination.current_page - 1) * pagination.per_page + 1 %}
+      {{ start }}-
+      {% set potential_end = pagination.current_page * pagination.per_page %}
+      {% if potential_end > pagination.total %}
+        {{ pagination.total }}
+      {% else %}
+        {{ potential_end }}
+      {% endif %}
+      of {{ pagination.total }} items
+    </div>
+  </div>
+
+  <!-- Todo列表 -->
+  <div class="space-y-2">
+    {% for todo in todos %}
+    <div class="card bg-base-100 shadow" id="todo-{{ todo.id }}">
+      <div class="card-body p-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <form 
+              hx-put="/todos/{{ todo.id }}"
+              hx-target="#todo-{{ todo.id }}"
+              hx-swap="outerHTML"
+              hx-trigger="change from:input[id='completed-{{ todo.id }}']" 
+              >
+              <!-- 隐藏字段（默认 false） -->
+              <input type="hidden" name="completed" value="false">
+              <!-- 复选框（选中时覆盖隐藏字段的值） -->
+              <input type="checkbox" 
+                  class="checkbox checkbox-primary"
+                  onchange="this.previousElementSibling.value=this.checked"
+                  {% if todo.completed %}checked{% endif %}
+                  id="completed-{{ todo.id }}"
+                  value="true">
+              <input type="hidden" name="title" value="{{ todo.title }}"/>
+            </form>
+            <span class="{% if todo.completed %}line-through opacity-75{% endif %}">
+              {{ todo.title }}
+            </span>
+          </div>
+          <button class="btn btn-sm btn-error"
+                  hx-delete="/todos/{{ todo.id }}"
+                  hx-target="#todo-list"
+                  hx-swap="outerHTML"
+                  hx-trigger="click">
+            Delete
+          </button>
+          <button class="btn w-24" hx-post="command:greet2" hx-include="[name='search'], [name='email'], [name='username'], [name='password']" hx-trigger="click"
+        hx-target="#greet-msg-2" hx-swap="innerHTML">Button</button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- 底部分页控制 -->
+  <div class="flex justify-center mt-4">
+    <div class="join">
+      {% for p in 1..=pagination.total_pages %}
+        <button class="join-item btn {% if p == pagination.current_page %}btn-active{% endif %}"
+                hx-get="/todos?page={{ p }}"
+                hx-target="#todo-list"
+                hx-swap="outerHTML">
+          {{ p }}
+        </button>
+      {% endfor %}
+    </div>
+  </div>
+</div>

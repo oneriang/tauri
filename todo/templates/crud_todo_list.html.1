@@ -1,0 +1,77 @@
+<div id="todoList">
+    {% if todos.is_empty() %}
+        <div class="alert alert-info">No todos found. Add one above!</div>
+    {% else %}
+        <div class="list-group">
+            {% for todo in todos %}
+            <div class="list-group-item todo-item d-flex justify-content-between align-items-center {% if todo.completed %}completed{% endif %}">
+                <div class="d-flex align-items-center">
+                    <form hx-put="/todos/{{ todo.id }}" hx-target="#todoList" hx-swap="innerHTML">
+                        <input type="hidden" name="completed" value="{{ !todo.completed }}">
+                        <button type="submit" class="btn btn-sm {% if todo.completed %}btn-outline-success{% else %}btn-outline-secondary{% endif %} me-2">
+                            {% if todo.completed %}
+                                <i class="bi bi-check-square"></i>
+                            {% else %}
+                                <i class="bi bi-square"></i>
+                            {% endif %}
+                        </button>
+                    </form>
+                    <span>{{ todo.title }}</span>
+                </div>
+                <div class="action-buttons">
+                    <!-- 编辑按钮 - 触发模态框 -->
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal" 
+                        data-id="{{ todo.id }}" data-title="{{ todo.title }}" data-completed="{{ todo.completed }}">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <!-- 删除按钮 -->
+                    <form hx-delete="/todos/{{ todo.id }}" hx-target="#todoList" hx-swap="innerHTML" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+{% if pagination.total_pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if pagination.current_page > 1 %}
+        <li class="page-item">
+            <a class="page-link" 
+               hx-get="/crud/list?page={{ pagination.current_page - 1 }}" 
+               hx-target="#todoList" 
+               hx-swap="innerHTML">
+                &laquo; Previous
+            </a>
+        </li>
+        {% endif %}
+        
+        {% for page_num in 1..=pagination.total_pages %}
+        <li class="page-item {% if page_num == pagination.current_page %}active{% endif %}">
+            <a class="page-link" 
+               hx-get="/crud/list?page={{ page_num }}" 
+               hx-target="#todoList" 
+               hx-swap="innerHTML">
+                {{ page_num }}
+            </a>
+        </li>
+        {% endfor %}
+        
+        {% if pagination.current_page < pagination.total_pages %}
+        <li class="page-item">
+            <a class="page-link" 
+               hx-get="/crud/list?page={{ pagination.current_page + 1 }}" 
+               hx-target="#todoList" 
+               hx-swap="innerHTML">
+                Next &raquo;
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
