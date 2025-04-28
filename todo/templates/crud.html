@@ -75,10 +75,17 @@
                             <label for="editTitle" class="form-label">Title</label>
                             <input type="text" class="form-control" id="editTitle" name="title" required>
                         </div>
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="editCompleted" name="completed">
+                        <!-- <div class="form-check mb-3">
+                            <input type="hidden" name="completed" value="false">
+                            <input class="form-check-input" type="checkbox" id="editCompleted" name="completed" value="true" h>
                             <label class="form-check-label" for="editCompleted">Completed</label>
-                        </div>
+                        </div> -->
+                        <div class="form-check mb-3">
+                            <input type="hidden" name="completed" value="false" id="hiddenCompleted">
+                            <input class="form-check-input" type="checkbox" id="editCompleted" name="completed" value="true" 
+                                   onchange="document.getElementById('hiddenCompleted').disabled = this.checked;">
+                            <label class="form-check-label" for="editCompleted">Completed</label>
+                        </div>                        
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -111,6 +118,7 @@
                 form.setAttribute('hx-put', `/todos/${id}`);
                 form.setAttribute('hx-target', '#todoList');
                 form.setAttribute('hx-swap', 'innerHTML');
+                htmx.process(form);
             });
         }
     </script>
