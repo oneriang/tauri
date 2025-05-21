@@ -1,0 +1,22 @@
+<tr>
+    <td>{{ user.id }}</td>
+    <td>{{ user.userid }}</td>
+    <td>{{ user.lname }} {{ user.fname }}</td>
+    <td>{% if user.permission == 1 %}管理者{% else %}一般{% endif %}</td>
+    <td>{% if user.facilitator == 1 %}有効{% else %}無効{% endif %}</td>
+    <td>
+        <button class="btn btn-sm btn-primary" 
+                hx-get="/users/{{ user.id }}/edit" 
+                hx-target="closest tr" 
+                hx-swap="outerHTML">
+            編集
+        </button>
+        <button class="btn btn-sm btn-danger" 
+                hx-delete="/users/{{ user.id }}" 
+                hx-target="#users-list" 
+                hx-swap="outerHTML"
+                hx-confirm="このユーザーを削除しますか？">
+            削除
+        </button>
+    </td>
+</tr>

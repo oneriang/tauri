@@ -3,10 +3,61 @@ use actix_web::{web, App, HttpResponse, HttpServer, Responder, get};
 use askama::Template;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
+// use sqlx::Row;
 use uuid::Uuid;
 use actix_files::Files;
 use log::{info, error};
 use actix_web::middleware::Logger;
+
+use std::fs;
+
+// async fn execute_sql_script(pool: &SqlitePool, path: &str) -> Result<(), sqlx::Error> {
+//     let script = fs::read_to_string(path).expect("无法读取 SQL 脚本文件");
+//     for statement in script.split(';') {
+//         let trimmed = statement.trim();
+//         if !trimmed.is_empty() {
+//             sqlx::query(trimmed).execute(pool).await?;
+//         }
+//     }
+//     Ok(())
+// }
+
+// 構造体 ---------------------------------------------------------
+// m_users 構造体
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct MUser {
+    id: i64,
+    userid: String,
+    passwd: String,
+    fname: String,
+    lname: String,
+    permission: i64,
+    facilitator: i64,
+    delflg: i64,
+}
+
+// 作成/更新用のリクエスト構造体
+#[derive(Deserialize, Debug)]
+struct CreateMUser {
+    userid: String,
+    passwd: String,
+    fname: String,
+    lname: String,
+    permission: i64,
+    facilitator: i64,
+}
+
+#[derive(Deserialize, Debug)]
+struct UpdateMUser {
+    userid: Option<String>,
+    passwd: Option<String>,
+    fname: Option<String>,
+    lname: Option<String>,
+    permission: Option<i64>,
+    facilitator: Option<i64>,
+    delflg: Option<i64>,
+}
+
 
 // Todo 结构体
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -47,6 +98,63 @@ struct Pagination {
     total_pages: i32,
 }
 
+// JSON 响应结构体
+#[derive(Serialize)]
+struct JsonResponse<T: Serialize> {
+    success: bool,
+    data: Option<T>,
+    error: Option<String>,
+}
+
+impl<T: Serialize> JsonResponse<T> {
+    fn success(data: T) -> Self {
+        Self {
+            success: true,
+            data: Some(data),
+            error: None,
+        }
+    }
+}
+
+impl JsonResponse<()> {
+    fn error(message: String) -> Self {
+        Self {
+            success: false,
+            data: None,
+            error: Some(message),
+        }
+    }
+}
+
+// --------------------------------------------------------- 構造体
+
+// テンプレート --------------------------------------------------------- 
+
+// CRUD ユーザー管理画面テンプレート
+#[derive(Template)]
+#[template(path = "users.html")]
+struct UsersTemplate {
+    users: Vec<MUser>,
+    pagination: Pagination,
+}
+
+// CRUD ユーザーリスト部分テンプレート
+#[derive(Template)]
+#[template(path = "users_list.html")]
+struct UsersListTemplate {
+    users: Vec<MUser>,
+    pagination: Pagination,
+}
+
+// CRUD ユーザーアイテム部分テンプレート
+#[derive(Template)]
+#[template(path = "users_item.html")]
+struct UsersItemTemplate {
+    user: MUser,
+    pagination: Pagination,
+}
+
+
 // CRUD 界面模板
 #[derive(Template)]
 #[template(path = "crud.html")]
@@ -78,30 +186,234 @@ struct ErrorTemplate {
     message: String,
 }
 
-// JSON 响应结构体
-#[derive(Serialize)]
-struct JsonResponse<T: Serialize> {
-    success: bool,
-    data: Option<T>,
-    error: Option<String>,
+// --------------------------------------------------------- テンプレート
+
+
+// 処理関数 --------------------------------------------------------- 
+
+// ユーザー管理UI
+async fn users_ui(
+    pool: web::Data<SqlitePool>,
+    params: web::Query<PaginationParams>,
+) -> impl Responder {
+    let page = params.page.unwrap_or(1);
+    let per_page = params.per_page.unwrap_or(10);
+    let offset = (page - 1) * per_page;
+
+    let total: i32 = sqlx::query_scalar!("SELECT COUNT(*) FROM m_users WHERE delflg = 0")
+        .fetch_one(pool.get_ref())
+        .await
+        .unwrap();
+
+    let users = sqlx::query_as!(
+        MUser,
+        r#"SELECT id, userid, passwd, fname, lname, permission, facilitator, delflg 
+           FROM m_users 
+           WHERE delflg = 0 
+           ORDER BY id DESC LIMIT ? OFFSET ?"#,
+        per_page,
+        offset
+    )
+    .fetch_all(pool.get_ref())
+    .await
+    .unwrap();
+
+    let total_pages = (total as f64 / per_page as f64).ceil() as i32;
+
+    let template = UsersTemplate {
+        users,
+        pagination: Pagination {
+            current_page: page,
+            per_page,
+            total,
+            total_pages,
+        },
+    };
+    
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(template.render().unwrap())
 }
 
-impl<T: Serialize> JsonResponse<T> {
-    fn success(data: T) -> Self {
-        Self {
-            success: true,
-            data: Some(data),
-            error: None,
+// ユーザーリスト部分取得
+async fn users_list(
+    pool: web::Data<SqlitePool>,
+    params: web::Query<PaginationParams>,
+) -> HttpResponse {  // impl Responder → HttpResponse に変更
+    let page = params.page.unwrap_or(1);
+    let per_page = params.per_page.unwrap_or(10);
+    let offset = (page - 1) * per_page;
+
+    let total: i32 = sqlx::query_scalar!("SELECT COUNT(*) FROM m_users WHERE delflg = 0")
+        .fetch_one(pool.get_ref())
+        .await
+        .unwrap();
+
+    let users = sqlx::query_as!(
+        MUser,
+        r#"SELECT id, userid, passwd, fname, lname, permission, facilitator, delflg 
+           FROM m_users 
+           WHERE delflg = 0 
+           ORDER BY id DESC LIMIT ? OFFSET ?"#,
+        per_page,
+        offset
+    )
+    .fetch_all(pool.get_ref())
+    .await
+    .unwrap();
+
+    let total_pages = (total as f64 / per_page as f64).ceil() as i32;
+
+    let template = UsersListTemplate {
+        users,
+        pagination: Pagination {
+            current_page: page,
+            per_page,
+            total,
+            total_pages,
+        },
+    };
+    
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(template.render().unwrap())
+}
+
+// 新規ユーザー作成
+async fn create_user(
+    pool: web::Data<SqlitePool>,
+    user_data: web::Form<CreateMUser>,
+) -> HttpResponse {  // impl Responder → HttpResponse に変更
+    if user_data.userid.trim().is_empty() || user_data.fname.trim().is_empty() || user_data.lname.trim().is_empty() {
+        let template = ErrorTemplate { 
+            message: "Required fields cannot be empty".to_string() 
+        };
+        return HttpResponse::BadRequest()
+            .content_type("text/html")
+            .body(template.render().unwrap());
+    }
+
+    match sqlx::query!(
+        "INSERT INTO m_users (userid, passwd, fname, lname, permission, facilitator, delflg) 
+         VALUES (?, ?, ?, ?, ?, ?, 0)",
+        user_data.userid,
+        user_data.passwd,
+        user_data.fname,
+        user_data.lname,
+        user_data.permission,
+        user_data.facilitator,
+    )
+    .execute(pool.get_ref())
+    .await {
+        Ok(_) => users_list(pool, web::Query(PaginationParams { page: Some(1), per_page: Some(10) })).await,
+        Err(e) => {
+            error!("Failed to create user: {}", e);
+            let template = ErrorTemplate { 
+                message: format!("Failed to create user: {}", e)
+            };
+            HttpResponse::InternalServerError()
+                .content_type("text/html")
+                .body(template.render().unwrap())
         }
     }
 }
 
-impl JsonResponse<()> {
-    fn error(message: String) -> Self {
-        Self {
-            success: false,
-            data: None,
-            error: Some(message),
+// ユーザー更新
+async fn update_user(
+    pool: web::Data<SqlitePool>,
+    user_id: web::Path<i64>,
+    user_data: web::Form<UpdateMUser>,
+    query: web::Query<PaginationParams>,
+) -> impl Responder {
+    let id = user_id.into_inner();
+    let page = query.page.unwrap_or(1);
+    
+    // 現在のユーザー情報を取得
+    let current_user = match sqlx::query_as!(
+        MUser,
+        r#"SELECT id, userid, passwd, fname, lname, permission, facilitator, delflg 
+           FROM m_users WHERE id = ?"#,
+        id
+    )
+    .fetch_optional(pool.get_ref())
+    .await {
+        Ok(Some(user)) => user,
+        Ok(None) => {
+            return HttpResponse::NotFound().body("User not found");
+        },
+        Err(e) => {
+            error!("Failed to fetch user: {}", e);
+            return HttpResponse::InternalServerError().body("Internal server error");
+        }
+    };
+    
+    // 更新する値を決定
+    let new_userid = user_data.userid.as_ref().unwrap_or(&current_user.userid);
+    let new_passwd = user_data.passwd.as_ref().unwrap_or(&current_user.passwd);
+    let new_fname = user_data.fname.as_ref().unwrap_or(&current_user.fname);
+    let new_lname = user_data.lname.as_ref().unwrap_or(&current_user.lname);
+    let new_permission = user_data.permission.unwrap_or(current_user.permission);
+    let new_facilitator = user_data.facilitator.unwrap_or(current_user.facilitator);
+    let new_delflg = user_data.delflg.unwrap_or(current_user.delflg);
+    
+    // データベース更新
+    match sqlx::query!(
+        "UPDATE m_users SET 
+            userid = ?, 
+            passwd = ?, 
+            fname = ?, 
+            lname = ?, 
+            permission = ?, 
+            facilitator = ?, 
+            delflg = ? 
+         WHERE id = ?",
+        new_userid,
+        new_passwd,
+        new_fname,
+        new_lname,
+        new_permission,
+        new_facilitator,
+        new_delflg,
+        id,
+    )
+    .execute(pool.get_ref())
+    .await {
+        Ok(result) => {
+            if result.rows_affected() == 0 {
+                return HttpResponse::NotFound().body("User not found");
+            }
+            users_list(pool, query).await
+        }
+        Err(e) => {
+            error!("Failed to update user: {}", e);
+            HttpResponse::InternalServerError().body("Failed to update user")
+        }
+    }
+}
+
+// ユーザー削除 (論理削除)
+async fn delete_user(
+    pool: web::Data<SqlitePool>, 
+    user_id: web::Path<i64>,
+    query: web::Query<PaginationParams>,
+) -> impl Responder {
+    let id = user_id.into_inner();
+    
+    match sqlx::query!(
+        "UPDATE m_users SET delflg = 1 WHERE id = ?",
+        id
+    )
+    .execute(pool.get_ref())
+    .await {
+        Ok(result) => {
+            if result.rows_affected() == 0 {
+                return HttpResponse::NotFound().body("User not found");
+            }
+            users_list(pool, query).await
+        }
+        Err(e) => {
+            error!("Failed to delete user: {}", e);
+            HttpResponse::InternalServerError().body("Failed to delete user")
         }
     }
 }
@@ -597,6 +909,8 @@ async fn delete_todo_json(
     }
 }
 
+// --------------------------------------------------------- 処理関数
+
 // 首页
 #[get("/")]
 async fn index() -> impl Responder {
@@ -608,6 +922,7 @@ async fn index() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+
     // 初始化日志
     std::env::set_var("RUST_LOG", "info,actix_web=info,sqlx=warn");
     env_logger::init();
@@ -622,6 +937,27 @@ async fn main() -> std::io::Result<()> {
     let pool = get_db_pool().await;
     info!("Database pool created");
 
+    // 执行数据库建表 SQL 脚本
+    /*
+    if let Err(e) = execute_sql_script(&pool, "sqlite_create_tables.sql").await {
+        eprintln!("初始化数据库失败: {}", e);
+    }
+    */
+    
+    /*
+    let rows = sqlx::query("SELECT name FROM sqlite_master WHERE type='table'")
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+
+    for row in rows {
+        let name: &str = row.get("name");
+        println!("存在的表: {}", name);
+    }
+    */
+    
+    
+    
     // 创建并运行HTTP服务器
     HttpServer::new(move || {
         App::new()
@@ -651,6 +987,14 @@ async fn main() -> std::io::Result<()> {
             .route("/api/todos", web::post().to(create_todo_json))
             .route("/api/todos/{id}", web::put().to(update_todo_json))
             .route("/api/todos/{id}", web::delete().to(delete_todo_json))
+            //
+            // HTML ルート
+            .route("/users", web::get().to(users_ui))
+            .route("/users/list", web::get().to(users_list))
+            .route("/users", web::post().to(create_user))
+            .route("/users/{id}", web::put().to(update_user))
+            .route("/users/{id}", web::delete().to(delete_user))
+
     })
     .bind("0.0.0.0:8000")?
     .run()
