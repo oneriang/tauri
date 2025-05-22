@@ -9,7 +9,8 @@
                     <tr>
                         <th>ID</th>
                         <th>ユーザーID</th>
-                        <th>氏名</th>
+                        <th>xing</th>
+                        <th>名</th>
                         <th>権限</th>
                         <th>ファシリテーター</th>
                         <th>操作</th>
@@ -30,7 +31,7 @@
                     <a class="page-link" 
                        hx-get="/users/list?page={{ pagination.current_page - 1 }}" 
                        hx-target="#users-list" 
-                       hx-swap="outerHTML">&laquo;</a>
+                       hx-swap="innerHTML">&laquo;</a>
                 </li>
                 {% endif %}
                 
@@ -39,7 +40,7 @@
                     <a class="page-link" 
                        hx-get="/users/list?page={{ page }}" 
                        hx-target="#users-list" 
-                       hx-swap="outerHTML">{{ page }}</a>
+                       hx-swap="innerHTML">{{ page }}</a>
                 </li>
                 {% endfor %}
                 
@@ -48,7 +49,7 @@
                     <a class="page-link" 
                        hx-get="/users/list?page={{ pagination.current_page + 1 }}" 
                        hx-target="#users-list" 
-                       hx-swap="outerHTML">&raquo;</a>
+                       hx-swap="innerHTML">&raquo;</a>
                 </li>
                 {% endif %}
             </ul>

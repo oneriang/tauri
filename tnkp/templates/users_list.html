@@ -1,0 +1,63 @@
+<div class="card">
+  <div class="card-header">
+    <h5>ユーザー一覧</h5>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>ユーザーID</th>
+            <th>姓</th>
+            <th>名</th>
+            <th>権限</th>
+            <th>ファシリテーター</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %} {% include "users_item.html" %} {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <nav aria-label="Page navigation">
+      <ul class="pagination justify-content-center">
+        {% if pagination.current_page > 1 %}
+        <li class="page-item">
+          <a
+            class="page-link"
+            hx-get="/users/list?page={{ pagination.current_page - 1 }}"
+            hx-target="#users-list"
+            hx-swap="innerHTML"
+            >&laquo;</a
+          >
+        </li>
+        {% endif %} {% for page in 1..=pagination.total_pages %}
+        <li
+          class="page-item {% if page == pagination.current_page %}active{% endif %}"
+        >
+          <a
+            class="page-link"
+            hx-get="/users/list?page={{ page }}"
+            hx-target="#users-list"
+            hx-swap="innerHTML"
+            >{{ page }}</a
+          >
+        </li>
+        {% endfor %} {% if pagination.current_page < pagination.total_pages %}
+        <li class="page-item">
+          <a
+            class="page-link"
+            hx-get="/users/list?page={{ pagination.current_page + 1 }}"
+            hx-target="#users-list"
+            hx-swap="innerHTML"
+            >&raquo;</a
+          >
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+</div>

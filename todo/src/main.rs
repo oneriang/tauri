@@ -136,6 +136,7 @@ impl JsonResponse<()> {
 struct UsersTemplate {
     users: Vec<MUser>,
     pagination: Pagination,
+    editing: bool
 }
 
 // CRUD ユーザーリスト部分テンプレート
@@ -144,16 +145,24 @@ struct UsersTemplate {
 struct UsersListTemplate {
     users: Vec<MUser>,
     pagination: Pagination,
+    editing: bool
 }
 
 // CRUD ユーザーアイテム部分テンプレート
+// #[derive(Template)]
+// #[template(path = "users_item.html")]
+// struct UsersItemTemplate {
+//     user: MUser,
+//     pagination: Pagination,
+// }
 #[derive(Template)]
 #[template(path = "users_item.html")]
 struct UsersItemTemplate {
     user: MUser,
     pagination: Pagination,
+    #[template(skip)]  // テンプレートでは使用しないが構造体の一貫性のために保持
+    editing: bool
 }
-
 
 // CRUD 界面模板
 #[derive(Template)]
@@ -228,6 +237,7 @@ async fn users_ui(
             total,
             total_pages,
         },
+        editing: false
     };
     
     HttpResponse::Ok()
@@ -272,6 +282,7 @@ async fn users_list(
             total,
             total_pages,
         },
+        editing: false
     };
     
     HttpResponse::Ok()
@@ -416,6 +427,79 @@ async fn delete_user(
             HttpResponse::InternalServerError().body("Failed to delete user")
         }
     }
+}
+
+// ユーザー編集フォーム取得
+// async fn edit_user_form(
+//     pool: web::Data<SqlitePool>,
+//     user_id: web::Path<i64>,
+// ) -> HttpResponse {
+//     let user = match sqlx::query_as!(
+//         MUser,
+//         r#"SELECT id, userid, passwd, fname, lname, permission, facilitator, delflg 
+//            FROM m_users WHERE id = ?"#,
+//         user_id.into_inner()
+//     )
+//     .fetch_optional(pool.get_ref())
+//     .await {
+//         Ok(Some(user)) => user,
+//         Ok(None) => return HttpResponse::NotFound().body("User not found"),
+//         Err(e) => {
+//             error!("Failed to fetch user: {}", e);
+//             return HttpResponse::InternalServerError().body("Internal server error");
+//         }
+//     };
+
+//     let template = UsersItemTemplate {
+//         user,
+//         pagination: Pagination {  // ダミーのページネーション
+//             current_page: 1,
+//             per_page: 10,
+//             total: 1,
+//             total_pages: 1,
+//         },
+//     };
+    
+//     HttpResponse::Ok()
+//         .content_type("text/html")
+//         .body(template.render().unwrap())
+// }
+
+async fn edit_user_form(
+    pool: web::Data<SqlitePool>,
+    user_id: web::Path<i64>,
+) -> HttpResponse {
+    let id = user_id.into_inner(); // ここで値を取り出して変数に保持
+    let user = match sqlx::query_as!(
+        MUser,
+        r#"SELECT id, userid, passwd, fname, lname, permission, facilitator, delflg 
+           FROM m_users WHERE id = ?"#,
+        id
+    )
+    .fetch_optional(pool.get_ref())
+    .await {
+        Ok(Some(user)) => user,
+        Ok(None) => return HttpResponse::NotFound().body("User not found"),
+        Err(e) => {
+            error!("Failed to fetch user: {}", e);
+            return HttpResponse::InternalServerError().body("Internal server error");
+        }
+    };
+
+    let template = UsersItemTemplate {
+        user,
+        pagination: Pagination {  // ダミーのページネーション
+            current_page: 1,
+            per_page: 10,
+            total: 1,
+            total_pages: 1,
+        },
+        editing: true,
+    };
+    
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(template.render().unwrap())
 }
 
 // 数据库连接池
@@ -994,6 +1078,7 @@ async fn main() -> std::io::Result<()> {
             .route("/users", web::post().to(create_user))
             .route("/users/{id}", web::put().to(update_user))
             .route("/users/{id}", web::delete().to(delete_user))
+            .route("/users/{id}/edit", web::get().to(edit_user_form))
 
     })
     .bind("0.0.0.0:8000")?
