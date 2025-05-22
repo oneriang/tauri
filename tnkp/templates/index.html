@@ -1,20 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TNKP App</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="container py-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8 text-center">
-                <h1 class="mb-4">Welcome to TNKP App</h1>
-                <div class="card">
+<body class="min-h-screen bg-base-200">
+    <div class="container mx-auto py-10">
+        <div class="flex justify-center">
+            <div class="w-full max-w-4xl text-center">
+                <h1 class="text-4xl font-bold mb-8">Welcome to TNKP App</h1>
+                <div class="card bg-base-100 shadow-xl">
                     <div class="card-body">
-                        <h5 class="card-title">Choose an interface</h5>
-                        <div class="d-grid gap-3">
+                        <h2 class="card-title justify-center">Choose an interface</h2>
+                        <div class="flex flex-col gap-4">
                             <a href="/users" class="btn btn-secondary btn-lg">Users</a>
                         </div>
                     </div>

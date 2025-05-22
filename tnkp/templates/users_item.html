@@ -1,80 +1,79 @@
 <tr>
     <td>{{ user.id }}</td>
-    <td>
-        {% if editing %}
-        <input type="text" class="form-control" name="userid" value="{{ user.userid }}">
-        {% else %}
-        {{ user.userid }}
-        {% endif %}
-    </td>
-    <td>
-        {% if editing %}
-        <input type="text" class="form-control" name="lname" value="{{ user.lname }}">
-        {% else %}
-        {{ user.lname }}
-        {% endif %}
-    </td>
-    <td>
-        {% if editing %}
-        <input type="text" class="form-control" name="fname" value="{{ user.fname }}">
-        {% else %}
-        {{ user.fname }}
-        {% endif %}
-    </td>
-    <td style="white-space: nowrap;">
-        {% if editing %}
-        <select class="form-select" name="permission">
-            <option value="0" {% if user.permission == 0 %}selected{% endif %}>一般</option>
-            <option value="1" {% if user.permission == 1 %}selected{% endif %}>管理者</option>
-        </select>
-        {% else %}
-        {% if user.permission == 1 %}管理者{% else %}一般{% endif %}
-        {% endif %}
-    </td>
-    <td>
-        {% if editing %}
-        <select class="form-select" name="facilitator">
-            <option value="0" {% if user.facilitator == 0 %}selected{% endif %}>無効</option>
-            <option value="1" {% if user.facilitator == 1 %}selected{% endif %}>有効</option>
-        </select>
-        {% else %}
-        {% if user.facilitator == 1 %}有効{% else %}無効{% endif %}
-        {% endif %}
-    </td>
-    <!-- <td style="display: flex; gap: 5px;"> -->
-    <td style="white-space: nowrap;">
-        {% if editing %}
-        
-        <button class="btn btn-sm btn-success" 
-                hx-put="/users/{{ user.id }}" 
-                hx-include="closest tr"
-                hx-target="#users-list"
-                hx-swap="innerHTML">
-            保存
-        </button>
-        <button class="btn btn-sm btn-secondary" 
-                hx-get="/users/list" 
-                hx-target="#users-list"
-                hx-swap="innerHTML">
-            キャンセル
-        </button>
-        
-        {% else %}
-        
+    <td>{{ user.userid }}</td>
+    <td>{{ user.lname }}</td>
+    <td>{{ user.fname }}</td>
+    <td>{% if user.permission == 1 %}管理者{% else %}一般{% endif %}</td>
+    <td>{% if user.facilitator == 1 %}有効{% else %}無効{% endif %}</td>
+    <td class="flex gap-2">
         <button class="btn btn-sm btn-primary" 
-                hx-get="/users/{{ user.id }}/edit" 
-                hx-target="closest tr" 
-                hx-swap="outerHTML">
+                onclick="edit_modal_{{ user.id }}.showModal()">
             編集
         </button>
-        <button class="btn btn-sm btn-danger" 
+        <button class="btn btn-sm btn-error" 
                 hx-delete="/users/{{ user.id }}" 
                 hx-target="#users-list" 
                 hx-swap="innerHTML"
                 hx-confirm="このユーザーを削除しますか？">
             削除
         </button>
-        
-        {% endif %}
     </td>
 </tr>
+
+<!-- Edit User Modal -->
+<dialog id="edit_modal_{{ user.id }}" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg">ユーザー編集</h3>
+    <form hx-put="/users/{{ user.id }}" hx-target="#users-list" hx-swap="innerHTML">
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">ユーザーID</span>
+        </label>
+        <input type="text" name="userid" value="{{ user.userid }}" class="input input-bordered w-full" required>
+      </div>
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">パスワード</span>
+        </label>
+        <input type="password" name="passwd" placeholder="新しいパスワード" class="input input-bordered w-full">
+      </div>
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">姓</span>
+        </label>
+        <input type="text" name="lname" value="{{ user.lname }}" class="input input-bordered w-full" required>
+      </div>
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">名</span>
+        </label>
+        <input type="text" name="fname" value="{{ user.fname }}" class="input input-bordered w-full" required>
+      </div>
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">権限</span>
+        </label>
+        <select class="select select-bordered w-full" name="permission">
+          <option value="0" {% if user.permission == 0 %}selected{% endif %}>一般</option>
+          <option value="1" {% if user.permission == 1 %}selected{% endif %}>管理者</option>
+        </select>
+      </div>
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">ファシリテーター</span>
+        </label>
+        <select class="select select-bordered w-full" name="facilitator">
+          <option value="0" {% if user.facilitator == 0 %}selected{% endif %}>無効</option>
+          <option value="1" {% if user.facilitator == 1 %}selected{% endif %}>有効</option>
+        </select>
+      </div>
+      <div class="modal-action">
+        <button type="button" class="btn" onclick="edit_modal_{{ user.id }}.close()">キャンセル</button>
+        <button type="submit" class="btn btn-primary">保存</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>

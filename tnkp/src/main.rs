@@ -69,8 +69,7 @@ struct Pagination {
 #[template(path = "users.html")]
 struct UsersTemplate {
     users: Vec<MUser>,
-    pagination: Pagination,
-    editing: bool
+    pagination: Pagination
 }
 
 // CRUD ユーザーリスト部分テンプレート
@@ -78,15 +77,13 @@ struct UsersTemplate {
 #[template(path = "users_list.html")]
 struct UsersListTemplate {
     users: Vec<MUser>,
-    pagination: Pagination,
-    editing: bool
+    pagination: Pagination
 }
 
 #[derive(Template)]
 #[template(path = "users_item.html")]
 struct UsersItemTemplate {
-    user: MUser,
-    editing: bool
+    user: MUser
 }
 
 // 错误模板
@@ -137,8 +134,7 @@ async fn users_ui(
             per_page,
             total,
             total_pages,
-        },
-        editing: false
+        }
     };
     
     HttpResponse::Ok()
@@ -182,8 +178,7 @@ async fn users_list(
             per_page,
             total,
             total_pages,
-        },
-        editing: false
+        }
     };
     
     HttpResponse::Ok()
@@ -351,8 +346,7 @@ async fn edit_user_form(
     };
 
     let template = UsersItemTemplate {
-        user,
-        editing: true,
+        user
     };
     
     HttpResponse::Ok()

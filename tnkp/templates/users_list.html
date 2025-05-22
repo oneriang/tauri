@@ -1,10 +1,17 @@
-<div class="card">
-  <div class="card-header">
-    <h5>ユーザー一覧</h5>
-  </div>
+<div class="card bg-base-100 shadow-xl">
   <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-striped">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="card-title">ユーザー一覧</h2>
+      <button class="btn btn-primary" onclick="create_modal.showModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        新規作成
+      </button>
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="table">
         <thead>
           <tr>
             <th>ID</th>
@@ -22,42 +29,91 @@
       </table>
     </div>
 
-    <nav aria-label="Page navigation">
-      <ul class="pagination justify-content-center">
-        {% if pagination.current_page > 1 %}
-        <li class="page-item">
-          <a
-            class="page-link"
-            hx-get="/users/list?page={{ pagination.current_page - 1 }}"
-            hx-target="#users-list"
-            hx-swap="innerHTML"
-            >&laquo;</a
-          >
-        </li>
-        {% endif %} {% for page in 1..=pagination.total_pages %}
-        <li
-          class="page-item {% if page == pagination.current_page %}active{% endif %}"
-        >
-          <a
-            class="page-link"
-            hx-get="/users/list?page={{ page }}"
-            hx-target="#users-list"
-            hx-swap="innerHTML"
-            >{{ page }}</a
-          >
-        </li>
-        {% endfor %} {% if pagination.current_page < pagination.total_pages %}
-        <li class="page-item">
-          <a
-            class="page-link"
-            hx-get="/users/list?page={{ pagination.current_page + 1 }}"
-            hx-target="#users-list"
-            hx-swap="innerHTML"
-            >&raquo;</a
-          >
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
+    <div class="join mt-4">
+      {% if pagination.current_page > 1 %}
+      <button class="join-item btn"
+              hx-get="/users/list?page={{ pagination.current_page - 1 }}"
+              hx-target="#users-list"
+              hx-swap="innerHTML">
+          «
+      </button>
+      {% endif %}
+      
+      {% for page in 1..=pagination.total_pages %}
+      <button class="join-item btn {% if page == pagination.current_page %}btn-active{% endif %}"
+              hx-get="/users/list?page={{ page }}"
+              hx-target="#users-list"
+              hx-swap="innerHTML">
+          {{ page }}
+      </button>
+      {% endfor %}
+      
+      {% if pagination.current_page < pagination.total_pages %}
+      <button class="join-item btn"
+              hx-get="/users/list?page={{ pagination.current_page + 1 }}"
+              hx-target="#users-list"
+              hx-swap="innerHTML">
+          »
+      </button>
+      {% endif %}
+    </div>
   </div>
 </div>
+
+<!-- Create User Modal -->
+<dialog id="create_modal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg">新規ユーザー作成</h3>
+    <form hx-post="/users" hx-target="#users-list" hx-swap="innerHTML">
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">ユーザーID</span>
+        </label>
+        <input type="text" name="userid" placeholder="ユーザーID" class="input input-bordered w-full" required>
+      </div>
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">パスワード</span>
+        </label>
+        <input type="password" name="passwd" placeholder="パスワード" class="input input-bordered w-full" required>
+      </div>
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">姓</span>
+        </label>
+        <input type="text" name="lname" placeholder="姓" class="input input-bordered w-full" required>
+      </div>
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">名</span>
+        </label>
+        <input type="text" name="fname" placeholder="名" class="input input-bordered w-full" required>
+      </div>
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">権限</span>
+        </label>
+        <select class="select select-bordered w-full" name="permission">
+          <option value="0">一般</option>
+          <option value="1">管理者</option>
+        </select>
+      </div>
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">ファシリテーター</span>
+        </label>
+        <select class="select select-bordered w-full" name="facilitator">
+          <option value="0">無効</option>
+          <option value="1">有効</option>
+        </select>
+      </div>
+      <div class="modal-action">
+        <button type="button" class="btn" onclick="create_modal.close()">キャンセル</button>
+        <button type="submit" class="btn btn-primary">作成</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
