@@ -9,6 +9,8 @@ use actix_web::middleware::Logger;
 
 // 構造体 ---------------------------------------------------------
 
+// m_users テーブルの構造体 ---------------------------------------------------------
+
 // m_users 構造体
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct MUser {
@@ -44,6 +46,9 @@ struct UpdateMUser {
     delflg: Option<i64>,
 }
 
+// --------------------------------------------------------- m_users テーブルの構造体
+
+// t_work テーブルの構造体 ---------------------------------------------------------
 
 // t_work 结构体
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -88,14 +93,62 @@ struct UpdateTWork {
     mountflgstr: Option<String>,
 }
 
-// 分页参数
+// --------------------------------------------------------- t_work テーブルの構造体
+
+// t_work_sub テーブルの構造体 ---------------------------------------------------------
+
+// t_work_sub 结构体
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct TWorkSub {
+    id: i64,
+    work_id: i64,
+    workclass_id: i64,
+    urtime: Option<String>,  // 使用Option处理可能的NULL值
+    mtime: Option<String>,
+    durtime: Option<String>,
+    comment: String,
+    working_user_id: i64,
+    delflg: i64,
+}
+
+// 创建用请求结构体
+#[derive(Deserialize, Debug)]
+struct CreateTWorkSub {
+    work_id: i64,
+    workclass_id: i64,
+    urtime: Option<String>,
+    mtime: Option<String>,
+    durtime: Option<String>,
+    comment: String,
+    working_user_id: i64,
+}
+
+// 更新用请求结构体
+#[derive(Deserialize, Debug)]
+struct UpdateTWorkSub {
+    work_id: Option<i64>,
+    workclass_id: Option<i64>,
+    urtime: Option<String>,
+    mtime: Option<String>,
+    durtime: Option<String>,
+    comment: Option<String>,
+    working_user_id: Option<i64>,
+    delflg: Option<i64>,
+}
+
+// --------------------------------------------------------- t_work_sub テーブルの構造体
+
+
+// ページング構造体 ---------------------------------------------------------
+
+// ページングパラメータ
 #[derive(Debug, Deserialize)]
 struct PaginationParams {
     page: Option<i32>,
     per_page: Option<i32>,
 }
 
-// 分页信息
+// ページング情報
 #[derive(Serialize)]
 struct Pagination {
     current_page: i32,
@@ -104,10 +157,11 @@ struct Pagination {
     total_pages: i32,
 }
 
+// --------------------------------------------------------- ページング構造体
+
 // --------------------------------------------------------- 構造体
 
 // テンプレート --------------------------------------------------------- 
-
 
 // users --------------------------------------------------------- 
 
@@ -133,7 +187,7 @@ struct UsersItemTemplate {
     user: MUser
 }
 
-// 添加新的编辑表单模板
+// 添加新的编辑表单テンプレート
 #[derive(Template)]
 #[template(path = "users_edit.html")]
 struct UsersEditTemplate {
@@ -144,7 +198,7 @@ struct UsersEditTemplate {
 
 // works --------------------------------------------------------- 
 
-// 模板结构体
+// テンプレート结构体
 #[derive(Template)]
 #[template(path = "works.html")]
 struct WorksTemplate {
@@ -173,13 +227,49 @@ struct WorksEditTemplate {
 
 // --------------------------------------------------------- works
 
+// t_work_sub テンプレート -------------------------------------------------
 
-// 错误模板
+#[derive(Template)]
+#[template(path = "work_subs.html")]
+struct WorkSubsTemplate {
+    work_subs: Vec<TWorkSub>,
+    work_id: i64,
+    pagination: Pagination
+}
+
+#[derive(Template)]
+#[template(path = "work_subs_list.html")]
+struct WorkSubsListTemplate {
+    work_subs: Vec<TWorkSub>,
+    work_id: i64,
+    pagination: Pagination
+}
+
+#[derive(Template)]
+#[template(path = "work_subs_item.html")]
+struct WorkSubsItemTemplate {
+    work_sub: TWorkSub
+}
+
+#[derive(Template)]
+#[template(path = "work_subs_edit.html")]
+struct WorkSubsEditTemplate {
+    work_sub: TWorkSub
+}
+
+// ------------------------------------------------- t_work_sub テンプレート
+
+
+// error テンプレート ---------------------------------------------------------
+
+// エラーテンプレート
 #[derive(Template)]
 #[template(path = "error.html")]
 struct ErrorTemplate {
     message: String,
 }
+
+// --------------------------------------------------------- error テンプレート
 
 // --------------------------------------------------------- テンプレート
 
@@ -413,35 +503,6 @@ async fn delete_user(
     }
 }
 
-async fn edit_user_form1(
-    pool: web::Data<SqlitePool>,
-    user_id: web::Path<i64>,
-) -> HttpResponse {
-    let id = user_id.into_inner(); // ここで値を取り出して変数に保持
-    let user = match sqlx::query_as!(
-        MUser,
-        r#"SELECT id, userid, passwd, fname, lname, permission, facilitator, delflg 
-           FROM m_users WHERE id = ?"#,
-        id
-    )
-    .fetch_optional(pool.get_ref())
-    .await {
-        Ok(Some(user)) => user,
-        Ok(None) => return HttpResponse::NotFound().body("User not found"),
-        Err(e) => {
-            error!("Failed to fetch user: {}", e);
-            return HttpResponse::InternalServerError().body("Internal server error");
-        }
-    };
-
-    let template = UsersItemTemplate {
-        user
-    };
-    
-    HttpResponse::Ok()
-        .content_type("text/html")
-        .body(template.render().unwrap())
-}
 
 // 添加新的编辑表单端点
 async fn edit_user_form(
@@ -565,46 +626,6 @@ async fn works_list(
         .body(template.render().unwrap())
 }
 
-// async fn create_work(
-//     pool: web::Data<SqlitePool>,
-//     work_data: web::Form<CreateTWork>,
-// ) -> HttpResponse {
-//     if work_data.slip_number.trim().is_empty() || work_data.title.trim().is_empty() {
-//         let template = ErrorTemplate { 
-//             message: "伝票番号とタイトルは必須です".to_string() 
-//         };
-//         return HttpResponse::BadRequest()
-//             .content_type("text/html")
-//             .body(template.render().unwrap());
-//     }
-
-//     match sqlx::query!(
-//         r#"INSERT INTO t_work 
-//            (customer_id, slip_number, title, facilitator_id, 
-//             version_id, os_id, folder_id, delflg, mountflg)
-//            VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)"#,
-//         work_data.customer_id,
-//         work_data.slip_number,
-//         work_data.title,
-//         work_data.facilitator_id,
-//         work_data.version_id,
-//         work_data.os_id,
-//         work_data.folder_id,
-//     )
-//     .execute(pool.get_ref())
-//     .await {
-//         Ok(_) => works_list(pool, web::Query(PaginationParams { page: Some(1), per_page: Some(10) })).await,
-//         Err(e) => {
-//             error!("作業作成失敗: {}", e);
-//             let template = ErrorTemplate { 
-//                 message: format!("作業作成失敗: {}", e)
-//             };
-//             HttpResponse::InternalServerError()
-//                 .content_type("text/html")
-//                 .body(template.render().unwrap())
-//         }
-//     }
-// }
 async fn create_work(
     pool: web::Data<SqlitePool>,
     work_data: web::Form<CreateTWork>,
@@ -789,6 +810,297 @@ async fn edit_work_form(
 
 // --------------------------------------------------------- works
 
+// t_work_sub 相关处理函数 -------------------------------------------------
+
+// 工作子项管理UI
+async fn work_subs_ui(
+    pool: web::Data<SqlitePool>,
+    work_id: web::Path<i64>,
+    params: web::Query<PaginationParams>,
+) -> impl Responder {
+    let work_id = work_id.into_inner();
+    let page = params.page.unwrap_or(1);
+    let per_page = params.per_page.unwrap_or(10);
+    let offset = (page - 1) * per_page;
+
+    let total: i32 = sqlx::query_scalar!(
+        "SELECT COUNT(*) FROM t_work_sub WHERE work_id = ? AND delflg = 0",
+        work_id
+    )
+    .fetch_one(pool.get_ref())
+    .await
+    .unwrap();
+
+    let work_subs = sqlx::query_as!(
+        TWorkSub,
+        r#"SELECT id, work_id, workclass_id, urtime, mtime, durtime, 
+                  comment, working_user_id, delflg
+           FROM t_work_sub 
+           WHERE work_id = ? AND delflg = 0
+           ORDER BY id DESC LIMIT ? OFFSET ?"#,
+        work_id,
+        per_page,
+        offset
+    )
+    .fetch_all(pool.get_ref())
+    .await
+    .unwrap();
+
+    let total_pages = (total as f64 / per_page as f64).ceil() as i32;
+
+    let template = WorkSubsTemplate {
+        work_subs,
+        work_id,
+        pagination: Pagination {
+            current_page: page,
+            per_page,
+            total,
+            total_pages,
+        }
+    };
+    
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(template.render().unwrap())
+}
+
+// 工作子项列表部分
+async fn work_subs_list(
+    pool: web::Data<SqlitePool>,
+    work_id: web::Path<i64>,
+    params: web::Query<PaginationParams>,
+) -> HttpResponse {
+    let work_id = work_id.into_inner();
+    let page = params.page.unwrap_or(1);
+    let per_page = params.per_page.unwrap_or(10);
+    let offset = (page - 1) * per_page;
+
+    let total: i32 = sqlx::query_scalar!(
+        "SELECT COUNT(*) FROM t_work_sub WHERE work_id = ? AND delflg = 0",
+        work_id
+    )
+    .fetch_one(pool.get_ref())
+    .await
+    .unwrap();
+
+    let work_subs = sqlx::query_as!(
+        TWorkSub,
+        r#"SELECT id, work_id, workclass_id, urtime, mtime, durtime, 
+                  comment, working_user_id, delflg
+           FROM t_work_sub 
+           WHERE work_id = ? AND delflg = 0
+           ORDER BY id DESC LIMIT ? OFFSET ?"#,
+        work_id,
+        per_page,
+        offset
+    )
+    .fetch_all(pool.get_ref())
+    .await
+    .unwrap();
+
+    let total_pages = (total as f64 / per_page as f64).ceil() as i32;
+
+    let template = WorkSubsListTemplate {
+        work_subs,
+        work_id,
+        pagination: Pagination {
+            current_page: page,
+            per_page,
+            total,
+            total_pages,
+        }
+    };
+    
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(template.render().unwrap())
+}
+
+// 创建工作子项
+async fn create_work_sub(
+    pool: web::Data<SqlitePool>,
+    work_id: web::Path<i64>,
+    work_sub_data: web::Form<CreateTWorkSub>,
+) -> HttpResponse {
+    if work_sub_data.comment.trim().is_empty() {
+        let template = ErrorTemplate { 
+            message: "コメントは必須です".to_string() 
+        };
+        return HttpResponse::BadRequest()
+            .content_type("text/html")
+            .body(template.render().unwrap());
+    }
+
+    match sqlx::query!(
+        r#"INSERT INTO t_work_sub 
+           (work_id, workclass_id, urtime, mtime, durtime, 
+            comment, working_user_id, delflg)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 0)"#,
+        work_id.into_inner(),
+        work_sub_data.workclass_id,
+        work_sub_data.urtime,
+        work_sub_data.mtime,
+        work_sub_data.durtime,
+        work_sub_data.comment,
+        work_sub_data.working_user_id,
+    )
+    .execute(pool.get_ref())
+    .await {
+        Ok(_) => work_subs_list(
+            pool, 
+            work_id, 
+            web::Query(PaginationParams { page: Some(1), per_page: Some(10) }))
+            .await,
+        Err(e) => {
+            error!("作業サブ作成失敗: {}", e);
+            let template = ErrorTemplate { 
+                message: format!("作業サブ作成失敗: {}", e)
+            };
+            HttpResponse::InternalServerError()
+                .content_type("text/html")
+                .body(template.render().unwrap())
+        }
+    }
+}
+
+// 更新工作子项
+async fn update_work_sub(
+    pool: web::Data<SqlitePool>,
+    path: web::Path<(i64, i64)>, // (work_id, sub_id)
+    work_sub_data: web::Form<UpdateTWorkSub>,
+    query: web::Query<PaginationParams>,
+) -> impl Responder {
+    let (work_id, sub_id) = path.into_inner();
+    
+    // 获取当前数据
+    let current = match sqlx::query_as!(
+        TWorkSub,
+        r#"SELECT id, work_id, workclass_id, urtime, mtime, durtime, 
+                  comment, working_user_id, delflg
+           FROM t_work_sub WHERE id = ?"#,
+        sub_id
+    )
+    .fetch_optional(pool.get_ref())
+    .await {
+        Ok(Some(sub)) => sub,
+        Ok(None) => return HttpResponse::NotFound().body("作業サブが見つかりません"),
+        Err(e) => {
+            error!("作業サブ取得失敗: {}", e);
+            return HttpResponse::InternalServerError().body("内部サーバーエラー");
+        }
+    };
+    
+    // 确定更新值
+    let new_work_id = work_sub_data.work_id.unwrap_or(current.work_id);
+    let new_workclass_id = work_sub_data.workclass_id.unwrap_or(current.workclass_id);
+    let new_urtime = work_sub_data.urtime.as_ref().or(current.urtime.as_ref());
+    let new_mtime = work_sub_data.mtime.as_ref().or(current.mtime.as_ref());
+    let new_durtime = work_sub_data.durtime.as_ref().or(current.durtime.as_ref());
+    let new_comment = work_sub_data.comment.as_ref().unwrap_or(&current.comment);
+    let new_working_user_id = work_sub_data.working_user_id.unwrap_or(current.working_user_id);
+    let new_delflg = work_sub_data.delflg.unwrap_or(current.delflg);
+    
+    match sqlx::query!(
+        r#"UPDATE t_work_sub SET 
+            work_id = ?, 
+            workclass_id = ?, 
+            urtime = ?, 
+            mtime = ?, 
+            durtime = ?, 
+            comment = ?, 
+            working_user_id = ?, 
+            delflg = ?
+         WHERE id = ?"#,
+        new_work_id,
+        new_workclass_id,
+        new_urtime,
+        new_mtime,
+        new_durtime,
+        new_comment,
+        new_working_user_id,
+        new_delflg,
+        sub_id,
+    )
+    .execute(pool.get_ref())
+    .await {
+        Ok(result) => {
+            if result.rows_affected() == 0 {
+                return HttpResponse::NotFound().body("作業サブが見つかりません");
+            }
+            work_subs_list(
+                pool, 
+                web::Path::from(work_id), 
+                query
+            ).await
+        }
+        Err(e) => {
+            error!("作業サブ更新失敗: {}", e);
+            HttpResponse::InternalServerError().body("作業サブ更新失敗")
+        }
+    }
+}
+
+// 删除工作子项(逻辑删除)
+async fn delete_work_sub(
+    pool: web::Data<SqlitePool>, 
+    path: web::Path<(i64, i64)>,
+    query: web::Query<PaginationParams>,
+) -> impl Responder {
+    let (work_id, sub_id) = path.into_inner();
+    
+    match sqlx::query!(
+        "UPDATE t_work_sub SET delflg = 1 WHERE id = ?",
+        sub_id
+    )
+    .execute(pool.get_ref())
+    .await {
+        Ok(result) => {
+            if result.rows_affected() == 0 {
+                return HttpResponse::NotFound().body("作業サブが見つかりません");
+            }
+            work_subs_list(
+                pool, 
+                web::Path::from(work_id), 
+                query
+            ).await
+        }
+        Err(e) => {
+            error!("作業サブ削除失敗: {}", e);
+            HttpResponse::InternalServerError().body("作業サブ削除失敗")
+        }
+    }
+}
+
+// 编辑表单
+async fn edit_work_sub_form(
+    pool: web::Data<SqlitePool>,
+    path: web::Path<(i64, i64)>,
+) -> HttpResponse {
+    let (_, sub_id) = path.into_inner();
+    let work_sub = match sqlx::query_as!(
+        TWorkSub,
+        r#"SELECT id, work_id, workclass_id, urtime, mtime, durtime, 
+                  comment, working_user_id, delflg
+           FROM t_work_sub WHERE id = ?"#,
+        sub_id
+    )
+    .fetch_optional(pool.get_ref())
+    .await {
+        Ok(Some(sub)) => sub,
+        Ok(None) => return HttpResponse::NotFound().body("作業サブが見つかりません"),
+        Err(e) => {
+            error!("作業サブ取得失敗: {}", e);
+            return HttpResponse::InternalServerError().body("内部サーバーエラー");
+        }
+    };
+
+    let template = WorkSubsEditTemplate { work_sub };
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(template.render().unwrap())
+}
+
+// ------------------------------------------------- t_work_sub 处理函数
 
 // 数据库连接池
 async fn get_db_pool() -> SqlitePool {
@@ -849,6 +1161,7 @@ async fn main() -> std::io::Result<()> {
             // HTML 路由
             .service(index)
             // HTML ルート
+            // 
             .route("/users", web::get().to(users_ui))
             .route("/users/list", web::get().to(users_list))
             .route("/users", web::post().to(create_user))
@@ -856,13 +1169,20 @@ async fn main() -> std::io::Result<()> {
             .route("/users/{id}", web::delete().to(delete_user))
             .route("/users/{id}/edit", web::get().to(edit_user_form))
             .route("/users/{id}/edit-form", web::get().to(edit_user_form)) // 添加这行
-            // 
+            // 作業ルート
             .route("/works", web::get().to(works_ui))
             .route("/works/list", web::get().to(works_list))
             .route("/works", web::post().to(create_work))
             .route("/works/{id}", web::put().to(update_work))
             .route("/works/{id}", web::delete().to(delete_work))
             .route("/works/{id}/edit-form", web::get().to(edit_work_form))
+            // 作業サブ
+            .route("/works/{work_id}/subs", web::get().to(work_subs_ui))
+            .route("/works/{work_id}/subs/list", web::get().to(work_subs_list))
+            .route("/works/{work_id}/subs", web::post().to(create_work_sub))
+            .route("/works/{work_id}/subs/{sub_id}", web::put().to(update_work_sub))
+            .route("/works/{work_id}/subs/{sub_id}", web::delete().to(delete_work_sub))
+            .route("/works/{work_id}/subs/{sub_id}/edit-form", web::get().to(edit_work_sub_form))
 
     })
     .bind("0.0.0.0:8000")?

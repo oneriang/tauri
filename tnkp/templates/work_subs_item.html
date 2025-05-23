@@ -1,0 +1,22 @@
+<tr>
+    <td>{{ work_sub.id }}</td>
+    <td>{{ work_sub.workclass_id }}</td>
+    <td>{{ work_sub.urtime.as_deref().unwrap_or("-") }}</td>
+    <td>{{ work_sub.mtime.as_deref().unwrap_or("-") }}</td>
+    <td>{{ work_sub.durtime.as_deref().unwrap_or("-") }}</td>
+    <td>{{ work_sub.comment }}</td>
+    <td>{{ work_sub.working_user_id }}</td>
+    <td class="flex gap-2">
+        <button class="btn btn-sm btn-primary" 
+                onclick="showEditModal({{ work_sub.work_id }}, {{ work_sub.id }})">
+            編集
+        </button>
+        <button class="btn btn-sm btn-error" 
+                hx-delete="/works/{{ work_sub.work_id }}/subs/{{ work_sub.id }}" 
+                hx-target="#work-subs-list" 
+                hx-swap="innerHTML"
+                hx-confirm="この作業サブを削除しますか？">
+            削除
+        </button>
+    </td>
+</tr>

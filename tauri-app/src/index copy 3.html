@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <!-- <link rel="stylesheet" href="styles.css" /> -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="htmx-config" content='{"selfRequestsOnly":false}' />
+  <title>Tauri App</title>
+  <script type="module" src="/main.js" defer></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.22/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body>
+  <main class="container mx-auto">
+    <h1>Welcome to Tauri</h1>
+    <div class="mx-auto">
+
+
+      <!-- Todo List -->
+      <div id="todo-list" hx-get="http://localhost:8000/todos" hx-trigger="load, todos-changed from:body">
+        <div class="flex justify-center">
+          <span class="loading loading-spinner loading-lg"></span>
+        </div>
+      </div>
+
+
+      <div class="flex flex-col gap-4">
+        <button class="btn w-24" hx-post="command:greet2"
+          hx-include="[name='search'], [name='email'], [name='username'], [name='password']" hx-trigger="click"
+          hx-target="#greet-msg-2" hx-swap="innerHTML">Button</button>
+        <p id="greet-msg-2"></p>
+        <div class="overflow-x-auto">
+          <table class="table">
+            <!-- head -->
+            <thead>
+              <tr>
+                <th></th>
+                <th>Name</th>
+                <th>Job</th>
+                <th>Favorite Color</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- row 1 -->
+              <tr>
+                <th>1</th>
+                <td>Cy Ganderton</td>
+                <td>Quality Control Specialist</td>
+                <td>Blue</td>
+              </tr>
+              <!-- row 2 -->
+              <tr>
+                <th>2</th>
+                <td>Hart Hagerty</td>
+                <td>Desktop Support Technician</td>
+                <td>Purple</td>
+              </tr>
+              <!-- row 3 -->
+              <tr>
+                <th>3</th>
+                <td>Brice Swyre</td>
+                <td>Tax Accountant</td>
+                <td>Red</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <label class="input input-bordered flex items-center gap-2">
+          <input type="text" class="grow" placeholder="Search" name="search" />
+        </label>
+        <label class="input input-bordered flex items-center gap-2">
+          <input type="text" class="grow" placeholder="Email" name="email" />
+        </label>
+        <label class="input input-bordered flex items-center gap-2">
+          <input type="text" class="grow" placeholder="Username" name="username" />
+        </label>
+        <label class="input input-bordered flex items-center gap-2">
+          <input type="password" class="grow" value="password" name="password" />
+        </label>
+        <input id="greet-input" name="name" placeholder="Enter a name..." />
+        <button class="btn" hx-post="command:greet" hx-include="[name='name']" hx-trigger="click" hx-target="#greet-msg"
+          hx-swap="innerHTML">
+          Greet
+        </button>
+        <p id="greet-msg"></p>
+        <input id="greet-input-id" name="id" placeholder="Enter a id..." />
+        <button class="btn" hx-post="command:greet1" hx-include="[name='id']" hx-trigger="click"
+          hx-target="#greet-msg-1" hx-swap="innerHTML">
+          ID
+        </button>
+        <p id="greet-msg-1"></p>
+      </div>
+    </div>
+  </main>
+</body>
+
+</html>

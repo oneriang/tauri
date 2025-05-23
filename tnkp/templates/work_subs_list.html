@@ -1,0 +1,120 @@
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="card-title">作業サブ一覧</h2>
+      <button class="btn btn-primary" onclick="create_modal.showModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        新規作成
+      </button>
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>作業分類</th>
+            <th>開始時間</th>
+            <th>終了時間</th>
+            <th>作業時間</th>
+            <th>コメント</th>
+            <th>作業者</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in work_subs %} {% include "work_subs_item.html" %} {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 分页控件 -->
+    <div class="join mt-4">
+      {% if pagination.current_page > 1 %}
+      <button class="join-item btn"
+              hx-get="/works/{{ work_id }}/subs/list?page={{ pagination.current_page - 1 }}"
+              hx-target="#work-subs-list"
+              hx-swap="innerHTML">
+          «
+      </button>
+      {% endif %}
+      
+      {% for page in 1..=pagination.total_pages %}
+      <button class="join-item btn {% if page == pagination.current_page %}btn-active{% endif %}"
+              hx-get="/works/{{ work_id }}/subs/list?page={{ page }}"
+              hx-target="#work-subs-list"
+              hx-swap="innerHTML">
+          {{ page }}
+      </button>
+      {% endfor %}
+      
+      {% if pagination.current_page < pagination.total_pages %}
+      <button class="join-item btn"
+              hx-get="/works/{{ work_id }}/subs/list?page={{ pagination.current_page + 1 }}"
+              hx-target="#work-subs-list"
+              hx-swap="innerHTML">
+          »
+      </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- 创建模态框 -->
+<dialog id="create_modal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg">新規作業サブ作成</h3>
+    <form hx-post="/works/{{ work_id }}/subs" hx-target="#work-subs-list" hx-swap="innerHTML">
+      <input type="hidden" name="work_id" value="{{ work_id }}">
+      
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">作業分類ID</span>
+        </label>
+        <input type="number" name="workclass_id" class="input input-bordered w-full" required>
+      </div>
+      
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">開始時間</span>
+        </label>
+        <input type="datetime-local" name="urtime" class="input input-bordered w-full">
+      </div>
+      
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">終了時間</span>
+        </label>
+        <input type="datetime-local" name="mtime" class="input input-bordered w-full">
+      </div>
+      
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">作業時間</span>
+        </label>
+        <input type="text" name="durtime" placeholder="HH:MM:SS" class="input input-bordered w-full">
+      </div>
+      
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">コメント</span>
+        </label>
+        <textarea name="comment" class="textarea textarea-bordered h-24" required></textarea>
+      </div>
+      
+      <div class="form-control w-full">
+        <label class="label">
+          <span class="label-text">作業者ID</span>
+        </label>
+        <input type="number" name="working_user_id" class="input input-bordered w-full" required>
+      </div>
+      
+      <div class="modal-action">
+        <button type="button" class="btn" onclick="create_modal.close()">キャンセル</button>
+        <button type="submit" class="btn btn-primary">作成</button>
+      </div>
+    </form>
+  </div>
+</dialog>

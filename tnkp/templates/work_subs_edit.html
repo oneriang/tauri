@@ -1,0 +1,61 @@
+<div class="modal-box">
+    <h3 class="font-bold text-lg">作業サブ編集</h3>
+    <form hx-put="/works/{{ work_sub.work_id }}/subs/{{ work_sub.id }}" 
+          hx-target="#work-subs-list" 
+          hx-swap="innerHTML"
+          _="on htmx:afterRequest if event.detail.successful then closeModal()">
+          
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">作業分類ID</span>
+            </label>
+            <input type="number" name="workclass_id" value="{{ work_sub.workclass_id }}" class="input input-bordered w-full" required>
+        </div>
+        
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">開始時間</span>
+            </label>
+            <input type="datetime-local" name="urtime" value="{{ work_sub.urtime.as_deref().unwrap_or("") }}" class="input input-bordered w-full">
+        </div>
+        
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">終了時間</span>
+            </label>
+            <input type="datetime-local" name="mtime" value="{{ work_sub.mtime.as_deref().unwrap_or("") }}" class="input input-bordered w-full">
+        </div>
+        
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">作業時間</span>
+            </label>
+            <input type="text" name="durtime" value="{{ work_sub.durtime.as_deref().unwrap_or("") }}" class="input input-bordered w-full">
+        </div>
+        
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">コメント</span>
+            </label>
+            <textarea name="comment" class="textarea textarea-bordered h-24" required>{{ work_sub.comment }}</textarea>
+        </div>
+        
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">作業者ID</span>
+            </label>
+            <input type="number" name="working_user_id" value="{{ work_sub.working_user_id }}" class="input input-bordered w-full" required>
+        </div>
+        
+        <div class="modal-action">
+            <button type="button" class="btn" onclick="closeModal()">キャンセル</button>
+            <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function closeModal() {
+        document.getElementById('edit-modal').close();
+    }
+</script>
