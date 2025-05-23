@@ -1,3 +1,4 @@
+<!-- templates/users_item.html -->
 <tr>
     <td>{{ user.id }}</td>
     <td>{{ user.userid }}</td>
@@ -7,7 +8,7 @@
     <td>{% if user.facilitator == 1 %}有効{% else %}無効{% endif %}</td>
     <td class="flex gap-2">
         <button class="btn btn-sm btn-primary" 
-                onclick="edit_modal_{{ user.id }}.showModal()">
+                onclick="showEditModal({{ user.id }})">
             編集
         </button>
         <button class="btn btn-sm btn-error" 
@@ -19,61 +20,3 @@
         </button>
     </td>
 </tr>
-
-<!-- Edit User Modal -->
-<dialog id="edit_modal_{{ user.id }}" class="modal">
-  <div class="modal-box">
-    <h3 class="font-bold text-lg">ユーザー編集</h3>
-    <form hx-put="/users/{{ user.id }}" hx-target="#users-list" hx-swap="innerHTML">
-      <div class="form-control w-full">
-        <label class="label">
-          <span class="label-text">ユーザーID</span>
-        </label>
-        <input type="text" name="userid" value="{{ user.userid }}" class="input input-bordered w-full" required>
-      </div>
-      <div class="form-control w-full">
-        <label class="label">
-          <span class="label-text">パスワード</span>
-        </label>
-        <input type="password" name="passwd" placeholder="新しいパスワード" class="input input-bordered w-full">
-      </div>
-      <div class="form-control w-full">
-        <label class="label">
-          <span class="label-text">姓</span>
-        </label>
-        <input type="text" name="lname" value="{{ user.lname }}" class="input input-bordered w-full" required>
-      </div>
-      <div class="form-control w-full">
-        <label class="label">
-          <span class="label-text">名</span>
-        </label>
-        <input type="text" name="fname" value="{{ user.fname }}" class="input input-bordered w-full" required>
-      </div>
-      <div class="form-control w-full">
-        <label class="label">
-          <span class="label-text">権限</span>
-        </label>
-        <select class="select select-bordered w-full" name="permission">
-          <option value="0" {% if user.permission == 0 %}selected{% endif %}>一般</option>
-          <option value="1" {% if user.permission == 1 %}selected{% endif %}>管理者</option>
-        </select>
-      </div>
-      <div class="form-control w-full">
-        <label class="label">
-          <span class="label-text">ファシリテーター</span>
-        </label>
-        <select class="select select-bordered w-full" name="facilitator">
-          <option value="0" {% if user.facilitator == 0 %}selected{% endif %}>無効</option>
-          <option value="1" {% if user.facilitator == 1 %}selected{% endif %}>有効</option>
-        </select>
-      </div>
-      <div class="modal-action">
-        <button type="button" class="btn" onclick="edit_modal_{{ user.id }}.close()">キャンセル</button>
-        <button type="submit" class="btn btn-primary">保存</button>
-      </div>
-    </form>
-  </div>
-  <form method="dialog" class="modal-backdrop">
-    <button>close</button>
-  </form>
-</dialog>

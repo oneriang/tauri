@@ -1,0 +1,61 @@
+<!-- templates/users_edit.html -->
+<div class="modal-box">
+    <h3 class="font-bold text-lg">ユーザー編集</h3>
+    <form hx-put="/users/{{ user.id }}" 
+          hx-target="#users-list" 
+          hx-swap="innerHTML"
+          _="on htmx:afterRequest if event.detail.successful then closeModal()">
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">ユーザーID</span>
+            </label>
+            <input type="text" name="userid" value="{{ user.userid }}" class="input input-bordered w-full" required>
+        </div>
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">パスワード</span>
+            </label>
+            <input type="password" name="passwd" placeholder="新しいパスワード" class="input input-bordered w-full">
+        </div>
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">姓</span>
+            </label>
+            <input type="text" name="lname" value="{{ user.lname }}" class="input input-bordered w-full" required>
+        </div>
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">名</span>
+            </label>
+            <input type="text" name="fname" value="{{ user.fname }}" class="input input-bordered w-full" required>
+        </div>
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">権限</span>
+            </label>
+            <select class="select select-bordered w-full" name="permission">
+                <option value="0" {% if user.permission == 0 %}selected{% endif %}>一般</option>
+                <option value="1" {% if user.permission == 1 %}selected{% endif %}>管理者</option>
+            </select>
+        </div>
+        <div class="form-control w-full">
+            <label class="label">
+                <span class="label-text">ファシリテーター</span>
+            </label>
+            <select class="select select-bordered w-full" name="facilitator">
+                <option value="0" {% if user.facilitator == 0 %}selected{% endif %}>無効</option>
+                <option value="1" {% if user.facilitator == 1 %}selected{% endif %}>有効</option>
+            </select>
+        </div>
+        <div class="modal-action">
+            <button type="button" class="btn" onclick="closeModal()">キャンセル</button>
+            <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function closeModal() {
+        document.getElementById('edit-modal').close();
+    }
+</script>

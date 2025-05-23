@@ -1,0 +1,79 @@
+<div class="modal-box w-11/12 max-w-5xl">
+    <h3 class="font-bold text-lg">作業編集</h3>
+    <form hx-put="/works/{{ work.id }}" 
+          hx-target="#works-list" 
+          hx-swap="innerHTML"
+          _="on htmx:afterRequest if event.detail.successful then trigger closeEditModal">
+          
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- 左カラム -->
+        <div class="space-y-4">
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">伝票番号</span>
+            </label>
+            <input type="text" name="slip_number" value="{{ work.slip_number }}" class="input input-bordered" required>
+          </div>
+          
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">タイトル</span>
+            </label>
+            <input type="text" name="title" value="{{ work.title }}" class="input input-bordered" required>
+          </div>
+          
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">顧客ID</span>
+            </label>
+            <input type="number" name="customer_id" value="{{ work.customer_id }}" class="input input-bordered" required>
+          </div>
+        </div>
+        
+        <!-- 右カラム -->
+        <div class="space-y-4">
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">バージョンID</span>
+            </label>
+            <input type="number" name="version_id" value="{{ work.version_id }}" class="input input-bordered" required>
+          </div>
+          
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">OS</span>
+            </label>
+            <select class="select select-bordered" name="os_id" required>
+              <option value="1" {% if work.os_id == 1 %}selected{% endif %}>Windows</option>
+              <option value="2" {% if work.os_id == 2 %}selected{% endif %}>Mac</option>
+            </select>
+          </div>
+          
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">フォルダID</span>
+            </label>
+            <input type="number" name="folder_id" value="{{ work.folder_id }}" class="input input-bordered" required>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-control mt-4">
+        <label class="label">
+          <span class="label-text">担当者ID</span>
+        </label>
+        <input type="text" name="facilitator_id" value="{{ work.facilitator_id }}" class="input input-bordered">
+      </div>
+      
+      <div class="modal-action mt-6">
+        <button type="button" class="btn" onclick="closeModal()">キャンセル</button>
+        <button type="submit" class="btn btn-primary">保存</button>
+      </div>
+    </form>
+</div>
+
+<script>
+  function closeModal() {
+      document.getElementById('edit-modal').close();
+  }
+</script>

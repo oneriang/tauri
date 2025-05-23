@@ -1,0 +1,43 @@
+<!-- templates/works_item.html -->
+<tr>
+
+    <td> {{ work.id }} </td>
+    <td> {{ work.customer_id }} </td>
+    <td> {{ work.slip_number }} </td>
+    <td> {{ work.title }} </td>
+    <td> {{ work.facilitator_id }} </td>
+    <td> {{ work.version_id }} </td>
+    <td> {{ work.os_id }} </td>
+    <td> {{ work.folder_id }} </td>
+    <td> {{ work.delflg }} </td>
+    <td> {{ work.mountflg }} </td>
+    <td>
+        {% if work.mountflgstr.is_some() %}
+            {{ work.mountflgstr.as_ref().unwrap() }}
+        {% endif %}
+    </td>
+        
+    <!-- <td>{{ work.id }}</td>
+    <td>{{ work.slip_number }}</td>
+    <td>{{ work.title }}</td>
+    <td>{{ work.customer_id }}</td>
+    <td>{{ work.os_id }}</td>
+    <td>
+        {% if work.mountflgstr.is_some() %}
+            {{ work.mountflgstr.as_ref().unwrap() }}
+        {% endif %}
+    </td> -->
+    <td class="flex gap-2">
+        <button class="btn btn-sm btn-primary" 
+                onclick="showEditModal({{ work.id }})">
+            編集
+        </button>
+        <button class="btn btn-sm btn-error" 
+                hx-delete="/works/{{ work.id }}" 
+                hx-target="#works-list" 
+                hx-swap="innerHTML"
+                hx-confirm="この作業を削除しますか？">
+            削除
+        </button>
+    </td>
+</tr>

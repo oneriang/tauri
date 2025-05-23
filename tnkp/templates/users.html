@@ -47,5 +47,29 @@
             {% include "users_list.html" %}
         </div>
 
+        <!-- 添加全局编辑模态框容器 -->
+        <dialog id="edit-modal" class="modal">
+        </dialog>
+        
+        <script>
+            // 全局模态框控制函数
+            function showEditModal(userId) {
+                const modal = document.getElementById('edit-modal');
+                // 使用HTMX加载编辑表单
+                htmx.ajax('GET', `/users/${userId}/edit-form`, {target:'#edit-modal', swap:'innerHTML'}).then(() => {
+                  console.log('Content inserted successfully!');
+                  modal.showModal();
+                });
+            }
+            
+            // 监听HTMX请求完成事件
+            document.body.addEventListener('htmx:afterSwap', function(evt) {
+                // 检查是否是用户列表更新
+                if (evt.detail.target.id === 'users-list') {
+                    const modal = document.getElementById('edit-modal');
+                    if (modal) modal.close();
+                }
+            });
+        </script>
 </body>
 </html>

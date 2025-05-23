@@ -44,6 +44,50 @@ struct UpdateMUser {
     delflg: Option<i64>,
 }
 
+
+// t_work 结构体
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct TWork {
+    id: i64,
+    customer_id: i64,
+    slip_number: String,
+    title: String,
+    facilitator_id: String,
+    version_id: i64,
+    os_id: i64,
+    folder_id: i64,
+    delflg: i64,
+    mountflg: i64,
+    mountflgstr: Option<String>,
+}
+
+// 创建用请求结构体
+#[derive(Deserialize, Debug)]
+struct CreateTWork {
+    customer_id: i64,
+    slip_number: String,
+    title: String,
+    facilitator_id: String,
+    version_id: i64,
+    os_id: i64,
+    folder_id: i64,
+}
+
+// 更新用请求结构体
+#[derive(Deserialize, Debug)]
+struct UpdateTWork {
+    customer_id: Option<i64>,
+    slip_number: Option<String>,
+    title: Option<String>,
+    facilitator_id: Option<String>,
+    version_id: Option<i64>,
+    os_id: Option<i64>,
+    folder_id: Option<i64>,
+    delflg: Option<i64>,
+    mountflg: Option<i64>,
+    mountflgstr: Option<String>,
+}
+
 // 分页参数
 #[derive(Debug, Deserialize)]
 struct PaginationParams {
@@ -63,6 +107,9 @@ struct Pagination {
 // --------------------------------------------------------- 構造体
 
 // テンプレート --------------------------------------------------------- 
+
+
+// users --------------------------------------------------------- 
 
 // CRUD ユーザー管理画面テンプレート
 #[derive(Template)]
@@ -86,6 +133,47 @@ struct UsersItemTemplate {
     user: MUser
 }
 
+// 添加新的编辑表单模板
+#[derive(Template)]
+#[template(path = "users_edit.html")]
+struct UsersEditTemplate {
+    user: MUser,
+}
+
+// --------------------------------------------------------- users
+
+// works --------------------------------------------------------- 
+
+// 模板结构体
+#[derive(Template)]
+#[template(path = "works.html")]
+struct WorksTemplate {
+    works: Vec<TWork>,
+    pagination: Pagination
+}
+
+#[derive(Template)]
+#[template(path = "works_list.html")]
+struct WorksListTemplate {
+    works: Vec<TWork>,
+    pagination: Pagination
+}
+
+#[derive(Template)]
+#[template(path = "works_item.html")]
+struct WorksItemTemplate {
+    work: TWork
+}
+
+#[derive(Template)]
+#[template(path = "works_edit.html")]
+struct WorksEditTemplate {
+    work: TWork
+}
+
+// --------------------------------------------------------- works
+
+
 // 错误模板
 #[derive(Template)]
 #[template(path = "error.html")]
@@ -95,8 +183,9 @@ struct ErrorTemplate {
 
 // --------------------------------------------------------- テンプレート
 
-
 // 処理関数 --------------------------------------------------------- 
+
+// users --------------------------------------------------------- 
 
 // ユーザー管理UI
 async fn users_ui(
@@ -324,7 +413,7 @@ async fn delete_user(
     }
 }
 
-async fn edit_user_form(
+async fn edit_user_form1(
     pool: web::Data<SqlitePool>,
     user_id: web::Path<i64>,
 ) -> HttpResponse {
@@ -353,6 +442,353 @@ async fn edit_user_form(
         .content_type("text/html")
         .body(template.render().unwrap())
 }
+
+// 添加新的编辑表单端点
+async fn edit_user_form(
+    pool: web::Data<SqlitePool>,
+    user_id: web::Path<i64>,
+) -> HttpResponse {
+    let id = user_id.into_inner();
+    let user = match sqlx::query_as!(
+        MUser,
+        r#"SELECT id, userid, passwd, fname, lname, permission, facilitator, delflg 
+           FROM m_users WHERE id = ?"#,
+        id
+    )
+    .fetch_optional(pool.get_ref())
+    .await {
+        Ok(Some(user)) => user,
+        Ok(None) => return HttpResponse::NotFound().body("User not found"),
+        Err(e) => {
+            error!("Failed to fetch user: {}", e);
+            return HttpResponse::InternalServerError().body("Internal server error");
+        }
+    };
+
+    let template = UsersEditTemplate { user };
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(template.render().unwrap())
+}
+
+// --------------------------------------------------------- users
+
+
+// works --------------------------------------------------------- 
+
+// t_work 相关处理函数
+async fn works_ui(
+    pool: web::Data<SqlitePool>,
+    params: web::Query<PaginationParams>,
+) -> impl Responder {
+    let page = params.page.unwrap_or(1);
+    let per_page = params.per_page.unwrap_or(10);
+    let offset = (page - 1) * per_page;
+
+    let total: i32 = sqlx::query_scalar!("SELECT COUNT(*) FROM t_work WHERE delflg = 0")
+        .fetch_one(pool.get_ref())
+        .await
+        .unwrap();
+
+    let works = sqlx::query_as!(
+        TWork,
+        r#"SELECT id, customer_id, slip_number, title, facilitator_id, 
+                  version_id, os_id, folder_id, delflg, mountflg, mountflgstr
+           FROM t_work 
+           WHERE delflg = 0 
+           ORDER BY id DESC LIMIT ? OFFSET ?"#,
+        per_page,
+        offset
+    )
+    .fetch_all(pool.get_ref())
+    .await
+    .unwrap();
+
+    let total_pages = (total as f64 / per_page as f64).ceil() as i32;
+
+    let template = WorksTemplate {
+        works,
+        pagination: Pagination {
+            current_page: page,
+            per_page,
+            total,
+            total_pages,
+        }
+    };
+    
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(template.render().unwrap())
+}
+
+async fn works_list(
+    pool: web::Data<SqlitePool>,
+    params: web::Query<PaginationParams>,
+) -> HttpResponse {
+    let page = params.page.unwrap_or(1);
+    let per_page = params.per_page.unwrap_or(10);
+    let offset = (page - 1) * per_page;
+
+    let total: i32 = sqlx::query_scalar!("SELECT COUNT(*) FROM t_work WHERE delflg = 0")
+        .fetch_one(pool.get_ref())
+        .await
+        .unwrap();
+
+    let works = sqlx::query_as!(
+        TWork,
+        r#"SELECT id, customer_id, slip_number, title, facilitator_id, 
+                  version_id, os_id, folder_id, delflg, mountflg, mountflgstr
+           FROM t_work 
+           WHERE delflg = 0 
+           ORDER BY id DESC LIMIT ? OFFSET ?"#,
+        per_page,
+        offset
+    )
+    .fetch_all(pool.get_ref())
+    .await
+    .unwrap();
+
+    let total_pages = (total as f64 / per_page as f64).ceil() as i32;
+
+    let template = WorksListTemplate {
+        works,
+        pagination: Pagination {
+            current_page: page,
+            per_page,
+            total,
+            total_pages,
+        }
+    };
+    
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(template.render().unwrap())
+}
+
+// async fn create_work(
+//     pool: web::Data<SqlitePool>,
+//     work_data: web::Form<CreateTWork>,
+// ) -> HttpResponse {
+//     if work_data.slip_number.trim().is_empty() || work_data.title.trim().is_empty() {
+//         let template = ErrorTemplate { 
+//             message: "伝票番号とタイトルは必須です".to_string() 
+//         };
+//         return HttpResponse::BadRequest()
+//             .content_type("text/html")
+//             .body(template.render().unwrap());
+//     }
+
+//     match sqlx::query!(
+//         r#"INSERT INTO t_work 
+//            (customer_id, slip_number, title, facilitator_id, 
+//             version_id, os_id, folder_id, delflg, mountflg)
+//            VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)"#,
+//         work_data.customer_id,
+//         work_data.slip_number,
+//         work_data.title,
+//         work_data.facilitator_id,
+//         work_data.version_id,
+//         work_data.os_id,
+//         work_data.folder_id,
+//     )
+//     .execute(pool.get_ref())
+//     .await {
+//         Ok(_) => works_list(pool, web::Query(PaginationParams { page: Some(1), per_page: Some(10) })).await,
+//         Err(e) => {
+//             error!("作業作成失敗: {}", e);
+//             let template = ErrorTemplate { 
+//                 message: format!("作業作成失敗: {}", e)
+//             };
+//             HttpResponse::InternalServerError()
+//                 .content_type("text/html")
+//                 .body(template.render().unwrap())
+//         }
+//     }
+// }
+async fn create_work(
+    pool: web::Data<SqlitePool>,
+    work_data: web::Form<CreateTWork>,
+) -> HttpResponse {
+    // バリデーション
+    if work_data.slip_number.trim().is_empty() 
+        || work_data.title.trim().is_empty()
+        || work_data.facilitator_id.trim().is_empty() {
+        
+        let template = ErrorTemplate { 
+            message: "必須項目が入力されていません".to_string() 
+        };
+        return HttpResponse::BadRequest()
+            .content_type("text/html")
+            .body(template.render().unwrap());
+    }
+
+    match sqlx::query!(
+        r#"INSERT INTO t_work 
+           (customer_id, slip_number, title, facilitator_id, 
+            version_id, os_id, folder_id, delflg, mountflg)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)"#,
+        work_data.customer_id,
+        work_data.slip_number,
+        work_data.title,
+        work_data.facilitator_id,
+        work_data.version_id,
+        work_data.os_id,
+        work_data.folder_id,
+    )
+    .execute(pool.get_ref())
+    .await {
+        Ok(_) => works_list(pool, web::Query(PaginationParams { page: Some(1), per_page: Some(10) })).await,
+        Err(e) => {
+            error!("作業作成失敗: {}", e);
+            let template = ErrorTemplate { 
+                message: format!("作業作成失敗: {}", e)
+            };
+            HttpResponse::InternalServerError()
+                .content_type("text/html")
+                .body(template.render().unwrap())
+        }
+    }
+}
+
+async fn update_work(
+    pool: web::Data<SqlitePool>,
+    work_id: web::Path<i64>,
+    work_data: web::Form<UpdateTWork>,
+    query: web::Query<PaginationParams>,
+) -> impl Responder {
+    let id = work_id.into_inner();
+    
+    // 現在の作業情報を取得
+    let current_work = match sqlx::query_as!(
+        TWork,
+        r#"SELECT id, customer_id, slip_number, title, facilitator_id, 
+                  version_id, os_id, folder_id, delflg, mountflg, mountflgstr
+           FROM t_work WHERE id = ?"#,
+        id
+    )
+    .fetch_optional(pool.get_ref())
+    .await {
+        Ok(Some(work)) => work,
+        Ok(None) => return HttpResponse::NotFound().body("作業が見つかりません"),
+        Err(e) => {
+            error!("作業取得失敗: {}", e);
+            return HttpResponse::InternalServerError().body("内部サーバーエラー");
+        }
+    };
+    
+    // 更新する値を決定
+    let new_customer_id = work_data.customer_id.unwrap_or(current_work.customer_id);
+    let new_slip_number = work_data.slip_number.as_ref().unwrap_or(&current_work.slip_number);
+    let new_title = work_data.title.as_ref().unwrap_or(&current_work.title);
+    let new_facilitator_id = work_data.facilitator_id.as_ref().unwrap_or(&current_work.facilitator_id);
+    let new_version_id = work_data.version_id.unwrap_or(current_work.version_id);
+    let new_os_id = work_data.os_id.unwrap_or(current_work.os_id);
+    let new_folder_id = work_data.folder_id.unwrap_or(current_work.folder_id);
+    let new_delflg = work_data.delflg.unwrap_or(current_work.delflg);
+    let new_mountflg = work_data.mountflg.unwrap_or(current_work.mountflg);
+    
+    // 修复临时值问题
+    let mountflgstr = match &work_data.mountflgstr {
+        Some(s) => s.as_str(),
+        None => current_work.mountflgstr.as_deref().unwrap_or(""),
+    };
+    
+    match sqlx::query!(
+        r#"UPDATE t_work SET 
+            customer_id = ?, 
+            slip_number = ?, 
+            title = ?, 
+            facilitator_id = ?, 
+            version_id = ?, 
+            os_id = ?, 
+            folder_id = ?, 
+            delflg = ?, 
+            mountflg = ?,
+            mountflgstr = ?
+         WHERE id = ?"#,
+        new_customer_id,
+        new_slip_number,
+        new_title,
+        new_facilitator_id,
+        new_version_id,
+        new_os_id,
+        new_folder_id,
+        new_delflg,
+        new_mountflg,
+        mountflgstr,
+        id,
+    )
+    .execute(pool.get_ref())
+    .await {
+        Ok(result) => {
+            if result.rows_affected() == 0 {
+                return HttpResponse::NotFound().body("作業が見つかりません");
+            }
+            works_list(pool, query).await
+        }
+        Err(e) => {
+            error!("作業更新失敗: {}", e);
+            HttpResponse::InternalServerError().body("作業更新失敗")
+        }
+    }
+}
+
+async fn delete_work(
+    pool: web::Data<SqlitePool>, 
+    work_id: web::Path<i64>,
+    query: web::Query<PaginationParams>,
+) -> impl Responder {
+    let id = work_id.into_inner();
+    
+    match sqlx::query!(
+        "UPDATE t_work SET delflg = 1 WHERE id = ?",
+        id
+    )
+    .execute(pool.get_ref())
+    .await {
+        Ok(result) => {
+            if result.rows_affected() == 0 {
+                return HttpResponse::NotFound().body("作業が見つかりません");
+            }
+            works_list(pool, query).await
+        }
+        Err(e) => {
+            error!("作業削除失敗: {}", e);
+            HttpResponse::InternalServerError().body("作業削除失敗")
+        }
+    }
+}
+
+async fn edit_work_form(
+    pool: web::Data<SqlitePool>,
+    work_id: web::Path<i64>,
+) -> HttpResponse {
+    let id = work_id.into_inner();
+    let work = match sqlx::query_as!(
+        TWork,
+        r#"SELECT id, customer_id, slip_number, title, facilitator_id, 
+                  version_id, os_id, folder_id, delflg, mountflg, mountflgstr
+           FROM t_work WHERE id = ?"#,
+        id
+    )
+    .fetch_optional(pool.get_ref())
+    .await {
+        Ok(Some(work)) => work,
+        Ok(None) => return HttpResponse::NotFound().body("作業が見つかりません"),
+        Err(e) => {
+            error!("作業取得失敗: {}", e);
+            return HttpResponse::InternalServerError().body("内部サーバーエラー");
+        }
+    };
+
+    let template = WorksEditTemplate { work };
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(template.render().unwrap())
+}
+
+// --------------------------------------------------------- works
+
 
 // 数据库连接池
 async fn get_db_pool() -> SqlitePool {
@@ -419,6 +855,14 @@ async fn main() -> std::io::Result<()> {
             .route("/users/{id}", web::put().to(update_user))
             .route("/users/{id}", web::delete().to(delete_user))
             .route("/users/{id}/edit", web::get().to(edit_user_form))
+            .route("/users/{id}/edit-form", web::get().to(edit_user_form)) // 添加这行
+            // 
+            .route("/works", web::get().to(works_ui))
+            .route("/works/list", web::get().to(works_list))
+            .route("/works", web::post().to(create_work))
+            .route("/works/{id}", web::put().to(update_work))
+            .route("/works/{id}", web::delete().to(delete_work))
+            .route("/works/{id}/edit-form", web::get().to(edit_work_form))
 
     })
     .bind("0.0.0.0:8000")?
