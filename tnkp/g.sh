@@ -487,6 +487,105 @@ cat > app/templates/base.html << 'EOL'
             }
         </style>
 
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+            body { font-family: 'Inter', sans-serif; }
+            .glass-effect {
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+            }
+            .card-hover {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .card-hover:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .btn-modern {
+                transition: all 0.2s ease-in-out;
+                position: relative;
+                overflow: hidden;
+            }
+            .btn-modern:before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                transition: left 0.5s;
+            }
+            .btn-modern:hover:before {
+                left: 100%;
+            }
+            .fade-in {
+                animation: fadeIn 0.8s ease-out forwards;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .slide-in {
+                animation: slideIn 0.6s ease-out forwards;
+            }
+            @keyframes slideIn {
+                from { transform: translateX(-20px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            .mobile-card {
+                transition: all 0.2s ease;
+            }
+            .mobile-card:active {
+                transform: scale(0.98);
+            }
+            /* Mobile specific styles */
+            @media (max-width: 768px) {
+                .mobile-hidden { display: none !important; }
+                .mobile-full { width: 100% !important; }
+                .mobile-stack { flex-direction: column !important; }
+                .mobile-text-sm { font-size: 0.875rem !important; }
+                .mobile-p-2 { padding: 0.5rem !important; }
+                .mobile-mb-4 { margin-bottom: 1rem !important; }
+            }
+            
+            /* Responsive table */
+            .responsive-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            
+            @media (max-width: 640px) {
+                .responsive-table {
+                    display: none;
+                }
+                .mobile-card-view {
+                    display: block;
+                }
+            }
+            
+            @media (min-width: 641px) {
+                .mobile-card-view {
+                    display: none;
+                }
+            }
+            
+            /* Mobile menu */
+            .mobile-menu {
+                transform: translateX(100%);
+                transition: transform 0.3s ease-in-out;
+            }
+            .mobile-menu.open {
+                transform: translateX(0);
+            }
+        </style>
+
         {% block head_extra %}
         {% endblock %}
     </head>
