@@ -737,59 +737,6 @@ cat > app/templates/form.html << 'EOL'
         {% include widget_template with context %}
         {% endfor %}
 
-        {% for field in fields %}
-        <div>
-            <label class="block text-gray-700 font-semibold mb-2">
-                {{ field.name.replace('_', ' ').title() }}
-            </label>
-            {% set field_value = item[field.name] if item and item[field.name] is not none else '' %}
-            <input 
-                type="{% if 'Integer' in field.type.__class__.__name__ %}number{% else %}text{% endif %}"
-                name="{{ field.name }}" 
-                value="{{ field_value }}"
-                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500"
-                {% if not field.nullable %}required{% endif %}>
-        </div>
-        {% endfor %}
-        
-        {% for field in fields %}
-        <div>
-            <label class="block text-gray-700 font-semibold mb-2">
-                {{ field.name.replace('_', ' ').title() }}
-            </label>
-            {% set field_value = item[field.name] if item and item[field.name] is not none else '' %}
-            
-            {% if field.html_type == 'textarea' %}
-            <textarea 
-                name="{{ field.name }}{% if not field.nullable %}" required{% endif %} 
-                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >{{ field_value }}</textarea>
-            
-            {% elif field.html_type == 'checkbox' %}
-            <input 
-                type="checkbox" 
-                name="{{ field.name }}{% if not field.nullable %}" required{% endif %} 
-                value="1" 
-                {% if field_value %}checked{% endif %} 
-                class="rounded text-purple-600 focus:ring-purple-500">
-            
-            {% elif field.html_type == 'date' or field.html_type == 'datetime-local' %}
-            <input 
-                type="{{ field.html_type }}{% if not field.nullable %}" required{% endif %} 
-                name="{{ field.name }}{% if not field.nullable %}" required{% endif %} 
-                value="{% if field_value %}{ field_value.isoformat().split('.')[0].replace(' ', 'T') }{% endif %}"
-                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500">
-            
-            {% else %}
-            <input 
-                type="text" 
-                name="{{ field.name }}{% if not field.nullable %}" required{% endif %} 
-                value="{{ field_value }}"
-                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500">
-            {% endif %}
-        </div>
-        {% endfor %}
-
         <div class="flex flex-col sm:flex-row justify-between gap-4 pt-6">
             <a href="/{{ table_name }}" 
             class="bg-gray-200 text-gray-800 px-6 py-3 rounded-xl hover:bg-gray-300 text-center">
