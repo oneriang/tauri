@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mx-auto px-4 py-4 lg:px-6 lg:py-8">
+    <!-- Desktop Header Section -->
+    <div class="hidden lg:block fade-in mb-8">
+        <div class="glass-effect rounded-2xl p-8 shadow-xl">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                        <i class="fas fa-database text-purple-600 mr-3"></i>
+                        {% block header_title %}データ管理{% endblock %}
+                    </h1>
+                    <p class="text-lg text-gray-600">データの閲覧・編集・管理</p>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="{{ new_url }}" 
+                       class="btn-modern bg-gradient-to-r from-green-500 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-blue-700 transform hover:scale-105 shadow-lg">
+                        <i class="fas fa-plus mr-2"></i>新規作成
+                    </a>
+                    <button onclick="location.reload()" 
+                            class="btn-modern bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-gray-600 hover:to-gray-700 transform hover:scale-105 shadow-lg">
+                        <i class="fas fa-sync-alt mr-2"></i>更新
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="slide-in grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
+        {% block stats_cards %}
+        <div class="glass-effect rounded-xl p-4 lg:p-6 card-hover">
+            <div class="flex items-center">
+                <div class="bg-blue-500 rounded-full p-2 lg:p-3 mr-3 lg:mr-4">
+                    <i class="fas fa-list text-white text-lg lg:text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-gray-600 text-xs lg:text-sm">総件数</p>
+                    <p class="text-xl lg:text-2xl font-bold text-gray-800">{{ items|length }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="glass-effect rounded-xl p-4 lg:p-6 card-hover">
+            <div class="flex items-center">
+                <div class="bg-green-500 rounded-full p-2 lg:p-3 mr-3 lg:mr-4">
+                    <i class="fas fa-table text-white text-lg lg:text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-gray-600 text-xs lg:text-sm">テーブル名</p>
+                    <p class="text-sm lg:text-lg font-semibold text-gray-800">{{ table_name }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="glass-effect rounded-xl p-4 lg:p-6 card-hover sm:col-span-2 lg:col-span-1">
+            <div class="flex items-center">
+                <div class="bg-purple-500 rounded-full p-2 lg:p-3 mr-3 lg:mr-4">
+                    <i class="fas fa-columns text-white text-lg lg:text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-gray-600 text-xs lg:text-sm">項目数</p>
+                    <p class="text-xl lg:text-2xl font-bold text-gray-800">{{ fields|length + 1 }}</p>
+                </div>
+            </div>
+        </div>
+        {% endblock %}
+    </div>
+
+    <!-- Search Form -->
+    {% include "partials/_search.html" with context %}
+
+    <!-- Table View -->
+    {% include "partials/_table.html" with context %}
+
+    <!-- Pagination -->
+    {% include "partials/_pagination.html" with context %}
+
+    <!-- Mobile Card View -->
+    {% block mobile_card_view %}
+    <div class="mobile-card-view space-y-4">
+        <div class="glass-effect rounded-xl p-4 shadow-lg">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">
+                <i class="fas fa-list mr-2"></i>データ一覧
+            </h2>
+        </div>
+        {% for item in items %}
+        <div class="glass-effect rounded-xl p-4 shadow-lg mobile-card">
+            <div class="flex justify-between items-start mb-3">
+                <div class="flex items-center">
+                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold mr-3">
+                        ID: {{ item.id }}
+                    </span>
+                </div>
+                <div class="flex space-x-2">
+                    <a href="/{{ table_name }}/{{ item.id }}" 
+                       class="bg-blue-500 text-white p-2 rounded-lg">
+                        <i class="fas fa-eye text-xs"></i>
+                    </a>
+                    <a href="/{{ table_name }}/{{ item.id }}/edit" 
+                       class="bg-yellow-500 text-white p-2 rounded-lg">
+                        <i class="fas fa-edit text-xs"></i>
+                    </a>
+                    <button hx-delete="/{{ table_name }}/{{ item.id }}" 
+                            hx-confirm="本当に削除しますか？"
+                            hx-target="closest .mobile-card"
+                            hx-swap="outerHTML swap:1s"
+                            class="bg-red-500 text-white p-2 rounded-lg">
+                        <i class="fas fa-trash text-xs"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 gap-2">
+                {% for field in fields %}
+                <div class="flex justify-between items-center py-1 border-b border-gray-100 last:border-b-0">
+                    <span class="text-sm font-medium text-gray-600">{{ field.name.replace('_', ' ').title() }}:</span>
+                    <span class="text-sm text-gray-800 truncate ml-2" style="max-width: 150px;">
+                        {{ item[field.name] if item[field.name] is not none else '—' }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+        {% if not items %}
+        <div class="glass-effect rounded-xl p-8 text-center">
+            <div class="text-gray-500">
+                <i class="fas fa-inbox text-3xl mb-4"></i>
+                <p class="text-lg font-medium">データがありません</p>
+                <p class="text-sm">新規作成ボタンからデータを追加してください</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endblock %}
+
+    <!-- Floating Action Button (Mobile) -->
+    {% block mobile_fab %}
+    <div class="lg:hidden fixed bottom-6 right-6 z-30">
+        <a href="{{ new_url }}" 
+           class="bg-gradient-to-r from-green-500 to-blue-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-xl">
+            <i class="fas fa-plus"></i>
+        </a>
+    </div>
+    {% endblock %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Mobile menu functionality
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
+    const closeMenuBtn = document.getElementById('close-menu');
+
+    function openMobileMenu() {
+        mobileMenu.classList.add('open');
+        mobileMenuOverlay.classList.remove('opacity-0', 'invisible');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeMobileMenu() {
+        mobileMenu.classList.remove('open');
+        mobileMenuOverlay.classList.add('opacity-0', 'invisible');
+        document.body.style.overflow = '';
+    }
+
+    mobileMenuBtn?.addEventListener('click', openMobileMenu);
+    closeMenuBtn?.addEventListener('click', closeMobileMenu);
+    mobileMenuOverlay?.addEventListener('click', closeMobileMenu);
+
+    // HTMX event handlers
+    document.addEventListener('htmx:beforeRequest', function(evt) {
+        evt.target.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>処理中...';
+        evt.target.disabled = true;
+    });
+
+    document.addEventListener('htmx:beforeSwap', function(evt) {
+        if (evt.detail.target.tagName === 'TR' || evt.detail.target.classList.contains('mobile-card')) {
+            evt.detail.target.style.opacity = '0';
+            evt.detail.target.style.transform = 'translateX(-100%)';
+        }
+    });
+
+    // Touch gesture support for mobile cards
+    if (window.innerWidth <= 768) {
+        let startY = 0;
+        let startX = 0;
+        document.addEventListener('touchstart', function(e) {
+            startY = e.touches[0].clientY;
+            startX = e.touches[0].clientX;
+        });
+        document.addEventListener('touchend', function(e) {
+            let endY = e.changedTouches[0].clientY;
+            let endX = e.changedTouches[0].clientX;
+            let diffY = startY - endY;
+            let diffX = startX - endX;
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                if (diffX > 0 && startX > window.innerWidth * 0.8) {
+                    openMobileMenu();
+                } else if (diffX < 0 && mobileMenu.classList.contains('open')) {
+                    closeMobileMenu();
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+{
+  "title": "ログイン",
+  "username": "ユーザーID",
+  "password": "パスワード",
+  "login": "ログイン",
+  "logout": "ログアウト",
+  "dashboard": "ダッシュボード",
+  "users": "ユーザー管理",
+  "works": "作業管理",
+  "customers": "顧客管理",
+  "folders": "フォルダ管理"
+}

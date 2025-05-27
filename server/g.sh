@@ -10,8 +10,8 @@ fi
 PROJECT_NAME=$1
 PROJECT_DIR="$PWD/$PROJECT_NAME"
 
-echo "创建项目目录结构..."
-mkdir -p $PROJECT_DIR/{app/{core,models,routers,static,static/locales,static/js,templates},scripts/templates}
+echo "创建 项目目录结构..."
+mkdir -p $PROJECT_DIR/{app/{core,models,routers,static,static/locales,static/js,templates,templates/partials},scripts/templates}
 cd $PROJECT_DIR
 
 cat > requirements.txt << 'EOL'
@@ -25,7 +25,7 @@ itsdangerous>=2.0.0
 matplotlib>=3.0.0  # 新增图表库
 EOL
 
-echo "创建虚拟环境..."
+echo "创建 虚拟环境..."
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -122,14 +122,56 @@ class BaseCRUD:
                 }
             )
 
+        def column_to_dict(col):
+            """将 SQLAlchemy Column 转换为包含元信息的字典"""
+            col_type = str(col.type)
+            html_type = "text"
+            
+            if "Integer" in col_type:
+                html_type = "number"
+            elif "Date" in col_type:
+                html_type = "date"
+            elif "DateTime" in col_type:
+                html_type = "datetime-local"
+            elif "Text" in col_type or col.type.python_type == str and col.type.length and col.type.length > 200:
+                html_type = "textarea"
+
+            return {
+                "name": col.name,
+                "type": col.type,
+                "nullable": col.nullable,
+                "required": not col.nullable,
+                "label": col.name.replace("_", " ").title(),
+                "html_type": html_type
+            }
+
         @router.get("/new", response_class=HTMLResponse)
         async def create_form(request: Request):
-            fields = [col for col in model.__table__.columns if col.name != 'id']
+            # fields = [column_to_dict(col) for col in model.__table__.columns if col.name != 'id']
+            fields = getattr(model, '__fields__', [])
             return templates.TemplateResponse(
                 f"{template_base}/form.html",
                 {
                     "request": request, 
                     "item": None,
+                    "fields": fields,
+                    "table_name": model.__tablename__,
+                    "model_name": model.__name__
+                }
+            )
+
+        @router.get("/{item_id}/edit", response_class=HTMLResponse)
+        async def edit_form(request: Request, item_id: int, db: Session = Depends(get_db)):
+            item = db.query(model).filter(model.id == item_id).first()
+            if not item:
+                raise HTTPException(status_code=404, detail="Item not found")
+            # fields = [column_to_dict(col) for col in model.__table__.columns if col.name != 'id']
+            fields = getattr(model, '__fields__', [])
+            return templates.TemplateResponse(
+                f"{template_base}/form.html",
+                {
+                    "request": request,
+                    "item": item,
                     "fields": fields,
                     "table_name": model.__tablename__,
                     "model_name": model.__name__
@@ -165,24 +207,6 @@ class BaseCRUD:
                     "table_name": model.__tablename__,
                     "model_name": model.__name__,
                     "fields": fields
-                }
-            )
-        
-        @router.get("/{item_id}/edit", response_class=HTMLResponse)
-        async def edit_form(request: Request, item_id: int, db: Session = Depends(get_db)):
-            item = db.query(model).filter(model.id == item_id).first()
-            if not item:
-                raise HTTPException(status_code=404, detail="Item not found")
-            
-            fields = [col for col in model.__table__.columns if col.name != 'id']
-            return templates.TemplateResponse(
-                f"{template_base}/form.html",
-                {
-                    "request": request,
-                    "item": item,
-                    "fields": fields,
-                    "table_name": model.__tablename__,
-                    "model_name": model.__name__
                 }
             )
         
@@ -223,6 +247,7 @@ mkdir -p scripts/templates
 cat > scripts/generate.py << 'EOL'
 import os
 from pathlib import Path
+import pprint
 
 # 表定义配置（日语字段说明）
 TABLES = {
@@ -260,7 +285,19 @@ TABLES = {
         "fields": [
             {"name": "code", "type": "String(20)", "required": True, "default": None, "label": "顧客コード"},
             {"name": "name", "type": "String(100)", "required": True, "default": None, "label": "顧客名"},
-            {"name": "delflg", "type": "Integer", "required": True, "default": None, "label": "削除フラグ"}
+            {
+                "name": "delflg", 
+                "type": "Integer", 
+                "required": True, 
+                "default": None, 
+                "label": "削除フラグ",
+                "widget_type": "select",
+                "choices": [
+                    {"value": 1, "label": "低"},
+                    {"value": 2, "label": "中"},
+                    {"value": 3, "label": "高"}
+                ]
+            }
         ]
     },
     "m_folder": {
@@ -282,7 +319,19 @@ TABLES = {
         "fields": [
             {"name": "name", "type": "String(50)", "required": True, "default": None, "label": "OS名"},
             {"name": "comment", "type": "String(200)", "required": True, "default": None, "label": "コメント"},
-            {"name": "delflg", "type": "Integer", "required": False, "default": 0, "label": "削除フラグ"}
+            {
+                "name": "delflg", 
+                "type": "Integer", 
+                "required": False, 
+                "default": 0, 
+                "label": "削除フラグ",
+                "widget_type": "radio",
+                "choices": [
+                    {"value": 0, "label": "未完了"},
+                    {"value": 1, "label": "進行中"},
+                    {"value": 2, "label": "完了"}
+                ]
+            }
         ]
     },
     "m_users": {
@@ -330,7 +379,7 @@ TABLES = {
     }
 }
 
-# 模板定义
+#  模板定义
 TEMPLATES = {
     "model.py.j2": """
 from sqlalchemy import Column, {field_types}
@@ -340,13 +389,15 @@ class {model_name}(BaseModel):
     __tablename__ = "{table_name}"
     
 {columns}
+
+    __fields__ = {fields}
 """,
 
     "router.py.j2": """
 from fastapi import APIRouter
 from app.models.{table_name} import {model_name}
 
-# 创建路由实例
+# 创建 路由实例
 {table_name}_model = {model_name}
 router = {table_name}_model.get_router()
 """,
@@ -365,6 +416,27 @@ router = {table_name}_model.get_router()
 {{% extends "detail.html" %}}
 """
 }
+
+def get_field_type(field):
+    """根据字段类型返回对应的HTML输入类型"""
+    if field.get('widget_type'):
+        return field['widget_type']
+
+    field_type = field['type']
+    
+    if 'Integer' in field_type:
+        return 'number'
+    elif 'Date' in field_type:
+        return 'date'
+    elif 'DateTime' in field_type:
+        return 'datetime-local'
+    elif 'Boolean' in field_type:
+        return 'checkbox'
+    elif 'Text' in field_type or len(str(field.get("label", ""))) > 100:
+        return 'textarea'
+    else:
+        return 'text'
+
 
 def get_unique_types(fields):
     """获取字段中使用的唯一SQL类型"""
@@ -395,15 +467,26 @@ def generate():
             column_def += ")"
             columns.append(column_def)
         
+            # 添加 html_type 属性
+            field['html_type'] = get_field_type(field)
+            
+            # 确保 widget_type 和 choices 也被传入模板
+            if 'widget_type' in field:
+                field['widget_type'] = field['widget_type']
+            if 'choices' in field:
+                field['choices'] = field['choices']
+                
         context = {
             "table_name": table_name,
             "model_name": model_name,
-            "fields": config["fields"],
+            "fields": pprint.pformat(config["fields"], indent=4, width=100),
             "field_types": ", ".join(get_unique_types(config["fields"])),
             "columns": "\n".join(columns)
         }
 
-        # 生成所有模板文件
+        print(config["fields"])
+
+        # 生成所有 模板文件
         for template_name, output_path in [
             ("model.py.j2", f"app/models/{table_name}.py"),
             ("router.py.j2", f"app/routers/{table_name}.py"),
@@ -434,7 +517,7 @@ if __name__ == "__main__":
 EOL
 
 
-# 创建基础模板
+# 创建 基础 模板
 cat > app/templates/base.html << 'EOL'
 <!DOCTYPE html>
 <html lang="ja">
@@ -449,14 +532,14 @@ cat > app/templates/base.html << 'EOL'
         <script src="https://cdn.tailwindcss.com "></script>
 
         <!-- Font Awesome -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css " rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
         <!-- HTMX -->
-        <script src="https://unpkg.com/htmx.org @1.9.6"></script>
+        <script src="https://unpkg.com/htmx.org@1.9.6"></script>
 
         <!-- 自定义样式 -->
         <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter :wght@300;400;500;600;700&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
             body { font-family: 'Inter', sans-serif; }
 
             .glass-effect {
@@ -626,7 +709,7 @@ cat > app/templates/base.html << 'EOL'
 </html>
 EOL
 
-# 创建form模板
+# 创建 form 模板
 cat > app/templates/form.html << 'EOL'
 {% extends "base.html" %}
 {% block title %}
@@ -641,6 +724,19 @@ cat > app/templates/form.html << 'EOL'
     <form method="post" 
         action="{% if item %}/{{ table_name }}/{{ item.id }}{% else %}/{{ table_name }}{% endif %}" 
         class="space-y-6">
+
+        {% for field in fields %}
+        {# 动态加载控件模板 #}
+        {% set widget_template = {
+            'radio': 'partials/_field_radio.html',
+            'checkbox': 'partials/_field_checkbox.html',
+            'select': 'partials/_field_select.html',
+            'daterange': 'partials/_field_daterange.html'
+        }.get(field.widget_type, 'partials/_field_default.html') %}
+
+        {% include widget_template with context %}
+        {% endfor %}
+
         {% for field in fields %}
         <div>
             <label class="block text-gray-700 font-semibold mb-2">
@@ -655,6 +751,45 @@ cat > app/templates/form.html << 'EOL'
                 {% if not field.nullable %}required{% endif %}>
         </div>
         {% endfor %}
+        
+        {% for field in fields %}
+        <div>
+            <label class="block text-gray-700 font-semibold mb-2">
+                {{ field.name.replace('_', ' ').title() }}
+            </label>
+            {% set field_value = item[field.name] if item and item[field.name] is not none else '' %}
+            
+            {% if field.html_type == 'textarea' %}
+            <textarea 
+                name="{{ field.name }}{% if not field.nullable %}" required{% endif %} 
+                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >{{ field_value }}</textarea>
+            
+            {% elif field.html_type == 'checkbox' %}
+            <input 
+                type="checkbox" 
+                name="{{ field.name }}{% if not field.nullable %}" required{% endif %} 
+                value="1" 
+                {% if field_value %}checked{% endif %} 
+                class="rounded text-purple-600 focus:ring-purple-500">
+            
+            {% elif field.html_type == 'date' or field.html_type == 'datetime-local' %}
+            <input 
+                type="{{ field.html_type }}{% if not field.nullable %}" required{% endif %} 
+                name="{{ field.name }}{% if not field.nullable %}" required{% endif %} 
+                value="{% if field_value %}{ field_value.isoformat().split('.')[0].replace(' ', 'T') }{% endif %}"
+                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500">
+            
+            {% else %}
+            <input 
+                type="text" 
+                name="{{ field.name }}{% if not field.nullable %}" required{% endif %} 
+                value="{{ field_value }}"
+                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500">
+            {% endif %}
+        </div>
+        {% endfor %}
+
         <div class="flex flex-col sm:flex-row justify-between gap-4 pt-6">
             <a href="/{{ table_name }}" 
             class="bg-gray-200 text-gray-800 px-6 py-3 rounded-xl hover:bg-gray-300 text-center">
@@ -670,7 +805,7 @@ cat > app/templates/form.html << 'EOL'
 {% endblock %}
 EOL
 
-# 创建detail模板
+# 创建 detail 模板
 cat > app/templates/detail.html << 'EOL'
 {% extends "base.html" %}
 {% block title %}
@@ -708,10 +843,219 @@ cat > app/templates/detail.html << 'EOL'
 {% endblock %}
 EOL
 
-# 创建基础模板 base_list.html
+
+# 创建 _field_default 模板
+cat > app/templates/partials/_field_default.html << 'EOL'
+<div class="mb-4">
+    <label class="block text-gray-700 font-semibold mb-2">{{ field.label }}</label>
+    <input 
+        type="{{ field.html_type }}"
+        name="{{ field.name }}" 
+        value="{{ item[field.name] if item and item[field.name] is not none else '' }}"
+        class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        {{ "required" if not field.nullable }}
+    >
+</div>
+EOL
+
+# 创建 _field_radio 模板
+cat > app/templates/partials/_field_radio.html << 'EOL'
+<div class="mb-4">
+    <label class="block text-gray-700 font-semibold mb-2">{{ field.label }}</label>
+    {% for option in field.choices %}
+    <div class="flex items-center space-x-2 mt-1">
+        <input 
+            type="radio" 
+            id="{{ field.name }}_{{ option.value }}" 
+            name="{{ field.name }}" 
+            value="{{ option.value }}" 
+            {% if item and item[field.name] == option.value %}checked{% endif %}
+            class="w-4 h-4 text-purple-600 focus:ring-purple-500"
+        >
+        <label for="{{ field.name }}_{{ option.value }}" class="text-sm text-gray-700">
+            {{ option.label }}
+        </label>
+    </div>
+    {% endfor %}
+</div>
+EOL
+
+# 创建 _field_checkbox 模板
+cat > app/templates/partials/_field_checkbox.html << 'EOL'
+<div class="mb-4 flex items-center space-x-2">
+    <input 
+        type="checkbox" 
+        id="{{ field.name }}" 
+        name="{{ field.name }}" 
+        value="1" 
+        {% if item and item[field.name] %}checked{% endif %}
+        class="w-4 h-4 text-purple-600 focus:ring-purple-500"
+    >
+    <label for="{{ field.name }}" class="text-sm text-gray-700">{{ field.label }}</label>
+</div>
+EOL
+
+# 创建 _field_select 模板
+cat > app/templates/partials/_field_select.html << 'EOL'
+<div class="mb-4">
+    <label class="block text-gray-700 font-semibold mb-2">{{ field.label }}</label>
+    <select 
+        name="{{ field.name }}" 
+        class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        {{ "required" if not field.nullable }}
+    >
+        {% for option in field.choices %}
+        <option value="{{ option.value }}" {% if item and item[field.name] == option.value %}selected{% endif %}>
+            {{ option.label }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+EOL
+
+# 创建 _field_daterange 模板
+cat > app/templates/partials/_field_daterange.html << 'EOL'
+<div class="mb-4">
+    <label class="block text-gray-700 font-semibold mb-2">{{ field.label }}</label>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-xs text-gray-600 mb-1">開始日</label>
+            <input 
+                type="date" 
+                name="{{ field.name }}_start"
+                value="{{ item.start_date }}" 
+                class="w-full border border-gray-300 rounded-xl px-4 py-3"
+            >
+        </div>
+        <div>
+            <label class="block text-xs text-gray-600 mb-1">終了日</label>
+            <input 
+                type="date" 
+                name="{{ field.name }}_end"
+                value="{{ item.end_date }}" 
+                class="w-full border border-gray-300 rounded-xl px-4 py-3"
+            >
+        </div>
+    </div>
+</div>
+EOL
+
+# 创建 _pagination 模板
+cat > app/templates/partials/_pagination.html << 'EOL'
+<div class="mt-6 flex justify-center items-center space-x-2 text-sm">
+    {% if page > 1 %}
+    <a href="?page={{ page - 1 }}&q={{ q }}" 
+       class="px-3 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">
+        ← 前へ
+    </a>
+    {% endif %}
+    <span class="px-4 py-2 text-gray-800 font-semibold bg-white border border-gray-300 rounded">
+        {{ page }}
+    </span>
+    {% if total > page * per_page %}
+    <a href="?page={{ page + 1 }}&q={{ q }}" 
+       class="px-3 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">
+        次へ →
+    </a>
+    {% endif %}
+</div>
+EOL
+
+# 创建 _search 模板
+cat > app/templates/partials/_search.html << 'EOL'
+<form method="get" class="mb-4 flex items-center gap-2">
+    <input type="text" name="q" value="{{ q }}" placeholder="検索キーワード"
+           class="border border-gray-300 rounded px-4 py-2 w-full max-w-xs">
+    <button type="submit"
+            class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+        検索
+    </button>
+</form>
+EOL
+
+# 创建 _table 模板
+cat > app/templates/partials/_table.html << 'EOL'
+<div class="slide-in glass-effect rounded-2xl shadow-xl overflow-hidden responsive-table">
+    <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-4 lg:px-8 py-4 lg:py-6 border-b">
+        <h2 class="text-xl lg:text-2xl font-bold text-gray-800">
+            <i class="fas fa-table mr-2"></i>データ一覧
+        </h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full">
+            <thead class="bg-gradient-to-r from-gray-100 to-gray-200">
+                <tr>
+                    <th class="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        <i class="fas fa-key mr-1 lg:mr-2"></i>ID
+                    </th>
+                    {% for field in fields %}
+                    <th class="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        <i class="fas fa-info-circle mr-1 lg:mr-2"></i>
+                        <span class="hidden sm:inline">{{ field.name.replace('_', ' ').title() }}</span>
+                        <span class="sm:hidden">{{ field.name[:8] + '...' if field.name|length > 8 else field.name }}</span>
+                    </th>
+                    {% endfor %}
+                    <th class="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        <i class="fas fa-cogs mr-1 lg:mr-2"></i>操作
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for item in items %}
+                <tr class="mobile-card hover:bg-gray-50">
+                    <td class="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm font-medium text-gray-900">
+                        <span class="bg-blue-100 text-blue-800 px-2 lg:px-3 py-1 rounded-full text-xs font-semibold">
+                            {{ item.id }}
+                        </span>
+                    </td>
+                    {% for field in fields %}
+                    <td class="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-700">
+                        <span class="truncate block" style="max-width: 120px;">
+                            {{ item[field.name] if item[field.name] is not none else '—' }}
+                        </span>
+                    </td>
+                    {% endfor %}
+                    <td class="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm font-medium">
+                        <div class="flex flex-col lg:flex-row space-y-1 lg:space-y-0 lg:space-x-2">
+                            <a href="/{{ table_name }}/{{ item.id }}" 
+                               class="btn-modern bg-blue-500 hover:bg-blue-600 text-white px-2 lg:px-4 py-1 lg:py-2 rounded-lg transition-all inline-flex items-center justify-center text-xs">
+                                <i class="fas fa-eye mr-1"></i><span class="hidden lg:inline">詳細</span>
+                            </a>
+                            <a href="/{{ table_name }}/{{ item.id }}/edit" 
+                               class="btn-modern bg-yellow-500 hover:bg-yellow-600 text-white px-2 lg:px-4 py-1 lg:py-2 rounded-lg transition-all inline-flex items-center justify-center text-xs">
+                                <i class="fas fa-edit mr-1"></i><span class="hidden lg:inline">編集</span>
+                            </a>
+                            <button hx-delete="/{{ table_name }}/{{ item.id }}" 
+                                    hx-confirm="本当に削除しますか？"
+                                    hx-target="closest tr"
+                                    hx-swap="outerHTML swap:1s"
+                                    class="btn-modern bg-red-500 hover:bg-red-600 text-white px-2 lg:px-4 py-1 lg:py-2 rounded-lg transition-all inline-flex items-center justify-center text-xs">
+                                <i class="fas fa-trash mr-1"></i><span class="hidden lg:inline">削除</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not items %}
+                <tr>
+                    <td colspan="{{ fields|length + 2 }}" class="px-6 py-12 text-center">
+                        <div class="text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-4"></i>
+                            <p class="text-lg font-medium">データがありません</p>
+                            <p class="text-sm">新規作成ボタンからデータを追加してください</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+EOL
+
+# 创建 基础 模板 base_list.html
 cat > app/templates/base_list.html << 'EOL'
 {% extends "base.html" %}
-
 {% block content %}
 <div class="container mx-auto px-4 py-4 lg:px-6 lg:py-8">
     <!-- Desktop Header Section -->
@@ -779,115 +1123,13 @@ cat > app/templates/base_list.html << 'EOL'
     </div>
 
     <!-- Search Form -->
-    <form method="get" class="mb-4 flex items-center gap-2">
-        {% block search_form %}
-        <input type="text" name="q" value="{{ q }}" placeholder="検索キーワード"
-               class="border border-gray-300 rounded px-4 py-2 w-full max-w-xs">
-        <button type="submit"
-                class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-            検索
-        </button>
-        {% endblock %}
-    </form>
+    {% include "partials/_search.html" with context %}
 
     <!-- Table View -->
-    {% block table_view %}
-    <div class="slide-in glass-effect rounded-2xl shadow-xl overflow-hidden responsive-table">
-        <div class="bg-gradient-to-r from-gray-100 to-gray-200 px-4 lg:px-8 py-4 lg:py-6 border-b">
-            <h2 class="text-xl lg:text-2xl font-bold text-gray-800">
-                <i class="fas fa-table mr-2"></i>データ一覧
-            </h2>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full">
-                <thead class="bg-gradient-to-r from-gray-100 to-gray-200">
-                    <tr>
-                        <th class="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                            <i class="fas fa-key mr-1 lg:mr-2"></i>ID
-                        </th>
-                        {% for field in fields %}
-                        <th class="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                            <i class="fas fa-info-circle mr-1 lg:mr-2"></i>
-                            <span class="hidden sm:inline">{{ field.name.replace('_', ' ').title() }}</span>
-                            <span class="sm:hidden">{{ field.name[:8] + '...' if field.name|length > 8 else field.name }}</span>
-                        </th>
-                        {% endfor %}
-                        <th class="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                            <i class="fas fa-cogs mr-1 lg:mr-2"></i>操作
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for item in items %}
-                    <tr class="mobile-card hover:bg-gray-50">
-                        <td class="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm font-medium text-gray-900">
-                            <span class="bg-blue-100 text-blue-800 px-2 lg:px-3 py-1 rounded-full text-xs font-semibold">
-                                {{ item.id }}
-                            </span>
-                        </td>
-                        {% for field in fields %}
-                        <td class="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-700">
-                            <span class="truncate block" style="max-width: 120px;">
-                                {{ item[field.name] if item[field.name] is not none else '—' }}
-                            </span>
-                        </td>
-                        {% endfor %}
-                        <td class="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm font-medium">
-                            <div class="flex flex-col lg:flex-row space-y-1 lg:space-y-0 lg:space-x-2">
-                                <a href="/{{ table_name }}/{{ item.id }}" 
-                                   class="btn-modern bg-blue-500 hover:bg-blue-600 text-white px-2 lg:px-4 py-1 lg:py-2 rounded-lg transition-all inline-flex items-center justify-center text-xs">
-                                    <i class="fas fa-eye mr-1"></i><span class="hidden lg:inline">詳細</span>
-                                </a>
-                                <a href="/{{ table_name }}/{{ item.id }}/edit" 
-                                   class="btn-modern bg-yellow-500 hover:bg-yellow-600 text-white px-2 lg:px-4 py-1 lg:py-2 rounded-lg transition-all inline-flex items-center justify-center text-xs">
-                                    <i class="fas fa-edit mr-1"></i><span class="hidden lg:inline">編集</span>
-                                </a>
-                                <button hx-delete="/{{ table_name }}/{{ item.id }}" 
-                                        hx-confirm="本当に削除しますか？"
-                                        hx-target="closest tr"
-                                        hx-swap="outerHTML swap:1s"
-                                        class="btn-modern bg-red-500 hover:bg-red-600 text-white px-2 lg:px-4 py-1 lg:py-2 rounded-lg transition-all inline-flex items-center justify-center text-xs">
-                                    <i class="fas fa-trash mr-1"></i><span class="hidden lg:inline">削除</span>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    {% if not items %}
-                    <tr>
-                        <td colspan="{{ fields|length + 2 }}" class="px-6 py-12 text-center">
-                            <div class="text-gray-500">
-                                <i class="fas fa-inbox text-4xl mb-4"></i>
-                                <p class="text-lg font-medium">データがありません</p>
-                                <p class="text-sm">新規作成ボタンからデータを追加してください</p>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-            {% if total > per_page %}
-            <div class="mt-6 flex justify-center items-center space-x-2 text-sm">
-                {% if page > 1 %}
-                <a href="?page={{ page - 1 }}&q={{ q }}" 
-                   class="px-3 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">
-                    ← 前へ
-                </a>
-                {% endif %}
-                <span class="px-4 py-2 text-gray-800 font-semibold bg-white border border-gray-300 rounded">
-                    {{ page }}
-                </span>
-                {% if total > page * per_page %}
-                <a href="?page={{ page + 1 }}&q={{ q }}" 
-                   class="px-3 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">
-                    次へ →
-                </a>
-                {% endif %}
-            </div>
-            {% endif %}
-        </div>
-    </div>
-    {% endblock %}
+    {% include "partials/_table.html" with context %}
+
+    <!-- Pagination -->
+    {% include "partials/_pagination.html" with context %}
 
     <!-- Mobile Card View -->
     {% block mobile_card_view %}
@@ -1022,7 +1264,7 @@ cat > app/templates/base_list.html << 'EOL'
 {% endblock %}
 EOL
 
-# 生成登录页面模板
+# 生成登录页面 模板
 cat > app/templates/login.html << 'EOL'
 
 {% extends "base.html" %}
@@ -1059,7 +1301,7 @@ cat > app/templates/login.html << 'EOL'
 {% endblock %}
 EOL
 
-# 生成权限不足页面模板
+# 生成权限不足页面 模板
 cat > app/templates/unauthorized.html << 'EOL'
 {% extends "base.html" %}
 {% block title %}
@@ -1079,7 +1321,7 @@ EOL
 
 echo "生成登出完成页面..."
 
-# 生成登出完成页面模板
+# 生成登出完成页面 模板
 cat > app/templates/logout.html << 'EOL'
 {% extends "base.html" %}
 {% block title %}
@@ -1340,9 +1582,9 @@ document.addEventListener('DOMContentLoaded', function () {
 {% endblock %}
 EOL
 
-echo "创建国际化资源文件..."
+echo "创建 国际化资源文件..."
 
-echo "创建 en.json（英文）"
+echo "创建  en.json（英文）"
 cat > app/static/locales/en.json << 'EOL'
 {
   "title": "Login",
@@ -1358,7 +1600,7 @@ cat > app/static/locales/en.json << 'EOL'
 }
 EOL
 
-echo "创建 ja.json（日文）"
+echo "创建  ja.json（日文）"
 cat > app/static/locales/ja.json << 'EOL'
 {
   "title": "ログイン",
@@ -1441,7 +1683,7 @@ def get_db():
     finally:
         db.close()
 
-# 创建所有表
+# 创建 所有表
 def create_tables():
     from app.core.base_model import Base
     Base.metadata.create_all(bind=engine)
@@ -1459,6 +1701,7 @@ from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 from app.models.m_users import MUsers
 from app.models.t_work import TWork
+from app.models.m_folder import MFolder
 from app.models.m_workclass import MWorkclass
 from app.models.t_logs import TLogs
 from datetime import datetime, timedelta
@@ -1477,7 +1720,7 @@ app.add_middleware(SessionMiddleware, secret_key="mysecretkey")
 os.makedirs("app/static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# 创建数据库表
+# 创建 数据库表
 create_tables()
 
 # 自动导入所有路由

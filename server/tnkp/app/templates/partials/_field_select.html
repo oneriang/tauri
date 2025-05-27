@@ -1,0 +1,14 @@
+<div class="mb-4">
+    <label class="block text-gray-700 font-semibold mb-2">{{ field.label }}</label>
+    <select 
+        name="{{ field.name }}" 
+        class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        {{ "required" if not field.nullable }}
+    >
+        {% for option in field.choices %}
+        <option value="{{ option.value }}" {% if item and item[field.name] == option.value %}selected{% endif %}>
+            {{ option.label }}
+        </option>
+        {% endfor %}
+    </select>
+</div>

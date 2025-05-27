@@ -1,0 +1,23 @@
+<div class="mb-4">
+    <label class="block text-gray-700 font-semibold mb-2">{{ field.label }}</label>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-xs text-gray-600 mb-1">開始日</label>
+            <input 
+                type="date" 
+                name="{{ field.name }}_start"
+                value="{{ item.start_date }}" 
+                class="w-full border border-gray-300 rounded-xl px-4 py-3"
+            >
+        </div>
+        <div>
+            <label class="block text-xs text-gray-600 mb-1">終了日</label>
+            <input 
+                type="date" 
+                name="{{ field.name }}_end"
+                value="{{ item.end_date }}" 
+                class="w-full border border-gray-300 rounded-xl px-4 py-3"
+            >
+        </div>
+    </div>
+</div>

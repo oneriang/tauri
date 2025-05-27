@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}
+    <title>アクセス拒否</title>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-md w-full mx-auto glass-effect rounded-2xl p-8 shadow-lg space-y-6 fade-in">
+    <h1 class="text-2xl font-bold text-red-600 mb-4 text-center">アクセス拒否</h1>
+    <p class="mb-6 text-gray-700 text-center">このページを表示する権限がありません。</p>
+    <a href="/login" class="bg-red-500 text-white px-4 py-2 rounded w-full text-center block">
+        ログインページへ戻る
+    </a>
+</div>
+{% endblock %}

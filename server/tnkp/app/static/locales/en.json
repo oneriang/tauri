@@ -1,0 +1,12 @@
+{
+  "title": "Login",
+  "username": "Username",
+  "password": "Password",
+  "login": "Login",
+  "logout": "Logout",
+  "dashboard": "Dashboard",
+  "users": "Users",
+  "works": "Works",
+  "customers": "Customers",
+  "folders": "Folders"
+}
