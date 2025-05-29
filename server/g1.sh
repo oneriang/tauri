@@ -552,194 +552,78 @@ EOL
 # 创建 基础 模板
 cat > app/templates/base.html << 'EOL'
 <!DOCTYPE html>
-<html lang="ja">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        {% block title %}
-            <title>FastAPI CRUD アプリ</title>
-        {% endblock %}
+<html lang="ja" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% block title %}
+        <title>FastAPI CRUD アプリ</title>
+    {% endblock %}
+    <!-- DaisyUI + Tailwind -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css"  rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script> 
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"  rel="stylesheet">
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script> 
 
-        <!-- Tailwind CSS -->
-        <script src="https://cdn.tailwindcss.com "></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-in {
+            animation: slideIn 0.6s ease-out forwards;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 
-        <!-- Font Awesome -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    {% block head_extra %}
+    {% endblock %}
+</head>
+<body class="bg-base-200">
+<!-- 导航栏 -->
+<nav class="navbar bg-base-100 sticky top-0 z-50 glass-effect">
+  <div class="flex-1">
+    <a href="/" class="btn btn-ghost normal-case text-xl">
+        <i class="fas fa-chart-line mr-2"></i>ダッシュボード
+    </a>
+  </div>
+  <div class="flex-none gap-2">
+    <button onclick="I18N.setLanguage('ja')">日本語</button>
+    <span>|</span>
+    <button onclick="I18N.setLanguage('en')">English</button>
+    <a href="/logout" class="btn btn-square btn-ghost"><i class="fas fa-sign-out-alt"></i></a>
+  </div>
+</nav>
 
-        <!-- HTMX -->
-        <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+<!-- 页面主体内容 -->
+<div class="container mx-auto px-4 py-6">
+    {% block content %}
+    {% endblock %}
+</div>
 
-        <!-- 自定义样式 -->
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-            body { font-family: 'Inter', sans-serif; }
-
-            .glass-effect {
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-            }
-            .gradient-bg {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            }
-            .fade-in {
-                animation: fadeIn 0.8s ease-out forwards;
-            }
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(20px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            .slide-in {
-                animation: slideIn 0.6s ease-out forwards;
-            }
-            @keyframes slideIn {
-                from { transform: translateX(-20px); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            .card-hover:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
-            }
-        </style>
-
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-            body { font-family: 'Inter', sans-serif; }
-            .glass-effect {
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-            }
-            .gradient-bg {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                min-height: 100vh;
-            }
-            .card-hover {
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            .card-hover:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-            }
-            .btn-modern {
-                transition: all 0.2s ease-in-out;
-                position: relative;
-                overflow: hidden;
-            }
-            .btn-modern:before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: -100%;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-                transition: left 0.5s;
-            }
-            .btn-modern:hover:before {
-                left: 100%;
-            }
-            .fade-in {
-                animation: fadeIn 0.8s ease-out forwards;
-            }
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(20px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            .slide-in {
-                animation: slideIn 0.6s ease-out forwards;
-            }
-            @keyframes slideIn {
-                from { transform: translateX(-20px); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            .mobile-card {
-                transition: all 0.2s ease;
-            }
-            .mobile-card:active {
-                transform: scale(0.98);
-            }
-            /* Mobile specific styles */
-            @media (max-width: 768px) {
-                .mobile-hidden { display: none !important; }
-                .mobile-full { width: 100% !important; }
-                .mobile-stack { flex-direction: column !important; }
-                .mobile-text-sm { font-size: 0.875rem !important; }
-                .mobile-p-2 { padding: 0.5rem !important; }
-                .mobile-mb-4 { margin-bottom: 1rem !important; }
-            }
-            
-            /* Responsive table */
-            .responsive-table {
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
-            }
-            
-            @media (max-width: 640px) {
-                .responsive-table {
-                    display: none;
-                }
-                .mobile-card-view {
-                    display: block;
-                }
-            }
-            
-            @media (min-width: 641px) {
-                .mobile-card-view {
-                    display: none;
-                }
-            }
-            
-            /* Mobile menu */
-            .mobile-menu {
-                transform: translateX(100%);
-                transition: transform 0.3s ease-in-out;
-            }
-            .mobile-menu.open {
-                transform: translateX(0);
-            }
-        </style>
-
-        {% block head_extra %}
-        {% endblock %}
-    </head>
-    <body class="gradient-bg">
-        <!-- 导航栏 -->
-        <nav class="glass-effect border-b border-white/20 sticky top-0 z-50">
-            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-                <h1 class="text-xl font-bold text-gray-800">
-                    <a href="/" class="text-gray-700 hover:text-purple-600">
-                        <i class="fas fa-chart-line text-purple-600 mr-2"></i>ダッシュボード
-                    </a>
-                </h1>
-                <!-- Language Switcher -->
-                <div class="flex items-center space-x-2">
-                    <button onclick="I18N.setLanguage('ja')" class="text-gray-700 hover:text-purple-600">日本語</button>
-                    <span class="text-gray-400">|</span>
-                    <button onclick="I18N.setLanguage('en')" class="text-gray-700 hover:text-purple-600">English</button>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/" class="text-gray-700 hover:text-purple-600">
-                        <i class="fas fa-home"></i>
-                    </a>
-                    <a href="/logout" class="text-gray-700 hover:text-purple-600">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </a>
-                </div>
-            </div>
-        </nav>
-
-        <!-- 页面主体内容 -->
-        <div class="container mx-auto px-4 py-6">
-            {% block content %}
-            {% endblock %}
-        </div>
-
-        <!-- 脚本 -->
-        {% block scripts %}
-        {% endblock %}
-    </body>
+<!-- 脚本 -->
+{% block scripts %}
+{% endblock %}
+</body>
 </html>
 EOL
 
@@ -749,36 +633,29 @@ cat > app/templates/form.html << 'EOL'
 {% block title %}
     <title>{% if item %}編集{% else %}作成{% endif %} {{ model_name }}</title>
 {% endblock %}
-
 {% block content %}
-<div class="max-w-3xl w-full mx-auto glass-effect rounded-2xl p-6 sm:p-8 shadow-xl fade-in">
-    <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-gray-800 text-center">
+<div class="max-w-3xl w-full mx-auto glass-effect rounded-box p-6 sm:p-8 card fade-in">
+    <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-center text-gray-800">
         {% if item %}編集{% else %}新規作成{% endif %} - {{ model_name }}
     </h1>
-    <form method="post" 
-        action="{% if item %}/{{ table_name }}/{{ item.id }}{% else %}/{{ table_name }}{% endif %}" 
-        class="space-y-6">
-
+    <form method="post"
+          action="{% if item %}/{{ table_name }}/{{ item.id }}{% else %}/{{ table_name }}{% endif %}"
+          class="space-y-6">
         {% for field in fields %}
-        {# 动态加载控件模板 #}
         {% set widget_template = {
             'radio': 'partials/_field_radio.html',
             'checkbox': 'partials/_field_checkbox.html',
             'select': 'partials/_field_select.html',
             'daterange': 'partials/_field_daterange.html'
         }.get(field.widget_type, 'partials/_field_default.html') %}
-
         {% include widget_template with context %}
         {% endfor %}
-
         <div class="flex flex-col sm:flex-row justify-between gap-4 pt-6">
-            <a href="/{{ table_name }}" 
-            class="bg-gray-200 text-gray-800 px-6 py-3 rounded-xl hover:bg-gray-300 text-center">
+            <a href="/{{ table_name }}" class="btn btn-outline btn-secondary">
                 <i class="fas fa-arrow-left mr-2"></i>戻る
             </a>
-            <button type="submit" 
-                    class="bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 text-center">
-                <i class="fas fa-save mr-2"></i>保存
+            <button type="submit" class="btn btn-primary gap-2">
+                <i class="fas fa-save"></i>保存
             </button>
         </div>
     </form>
@@ -792,32 +669,29 @@ cat > app/templates/detail.html << 'EOL'
 {% block title %}
     <title>{{ model_name }} 詳細</title>
 {% endblock %}
-
 {% block content %}
-<div class="max-w-4xl w-full mx-auto glass-effect rounded-2xl p-6 sm:p-8 shadow-xl fade-in">
-    <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-gray-800 text-center sm:text-left">
-        <i class="fas fa-info-circle text-purple-600 mr-2"></i>{{ model_name }} 詳細
+<div class="max-w-4xl w-full mx-auto glass-effect rounded-box p-6 sm:p-8 card fade-in">
+    <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-center sm:text-left">
+        <i class="fas fa-info-circle text-primary mr-2"></i>{{ model_name }} 詳細
     </h1>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-            <h2 class="text-gray-600 font-semibold">ID</h2>
-            <p class="text-base sm:text-lg text-gray-800">{{ item.id }}</p>
+            <h2 class="font-semibold">ID</h2>
+            <p class="text-lg">{{ item.id }}</p>
         </div>
         {% for field in fields %}
         <div>
-            <h2 class="text-gray-600 font-semibold">{{ field.name.replace('_', ' ').title() }}</h2>
-            <p class="text-base sm:text-lg text-gray-800">{{ item[field.name] if item[field.name] is not none else '—' }}</p>
+            <h2 class="font-semibold">{{ field.name.replace('_', ' ').title() }}</h2>
+            <p class="text-lg">{{ item[field.name] if item[field.name] is not none else '—' }}</p>
         </div>
         {% endfor %}
     </div>
     <div class="flex flex-col sm:flex-row justify-end mt-8 space-y-4 sm:space-y-0 sm:space-x-4">
-        <a href="/{{ table_name }}/{{ item.id }}/edit" 
-           class="bg-yellow-500 text-white px-6 py-3 rounded-xl hover:bg-yellow-600 text-center">
-            <i class="fas fa-edit mr-2"></i>編集
+        <a href="/{{ table_name }}/{{ item.id }}/edit" class="btn btn-warning gap-2">
+            <i class="fas fa-edit"></i>編集
         </a>
-        <a href="/{{ table_name }}" 
-           class="bg-gray-200 text-gray-800 px-6 py-3 rounded-xl hover:bg-gray-300 text-center">
-            <i class="fas fa-list mr-2"></i>一覧へ戻る
+        <a href="/{{ table_name }}" class="btn btn-neutral gap-2">
+            <i class="fas fa-list"></i>一覧へ戻る
         </a>
     </div>
 </div>
@@ -828,12 +702,12 @@ EOL
 # 创建 _field_default 模板
 cat > app/templates/partials/_field_default.html << 'EOL'
 <div class="mb-4">
-    <label class="block text-gray-700 font-semibold mb-2">{{ field.label }}</label>
-    <input 
+    <label class="label label-text font-semibold">{{ field.label }}</label>
+    <input
         type="{{ field.html_type }}"
-        name="{{ field.name }}" 
+        name="{{ field.name }}"
         value="{{ item[field.name] if item and item[field.name] is not none else '' }}"
-        class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        class="input input-bordered w-full"
         {{ "required" if not field.nullable }}
     >
 </div>
@@ -842,18 +716,18 @@ EOL
 # 创建 _field_radio 模板
 cat > app/templates/partials/_field_radio.html << 'EOL'
 <div class="mb-4">
-    <label class="block text-gray-700 font-semibold mb-2">{{ field.label }}</label>
+    <label class="label label-text font-semibold">{{ field.label }}</label>
     {% for option in field.choices %}
     <div class="flex items-center space-x-2 mt-1">
-        <input 
-            type="radio" 
-            id="{{ field.name }}_{{ option.value }}" 
-            name="{{ field.name }}" 
-            value="{{ option.value }}" 
+        <input
+            type="radio"
+            id="{{ field.name }}_{{ option.value }}"
+            name="{{ field.name }}"
+            value="{{ option.value }}"
             {% if item and item[field.name] == option.value %}checked{% endif %}
-            class="w-4 h-4 text-purple-600 focus:ring-purple-500"
+            class="radio radio-primary"
         >
-        <label for="{{ field.name }}_{{ option.value }}" class="text-sm text-gray-700">
+        <label for="{{ field.name }}_{{ option.value }}">
             {{ option.label }}
         </label>
     </div>
@@ -864,25 +738,25 @@ EOL
 # 创建 _field_checkbox 模板
 cat > app/templates/partials/_field_checkbox.html << 'EOL'
 <div class="mb-4 flex items-center space-x-2">
-    <input 
-        type="checkbox" 
-        id="{{ field.name }}" 
-        name="{{ field.name }}" 
-        value="1" 
+    <input
+        type="checkbox"
+        id="{{ field.name }}"
+        name="{{ field.name }}"
+        value="1"
         {% if item and item[field.name] %}checked{% endif %}
-        class="w-4 h-4 text-purple-600 focus:ring-purple-500"
+        class="checkbox checkbox-primary"
     >
-    <label for="{{ field.name }}" class="text-sm text-gray-700">{{ field.label }}</label>
+    <label for="{{ field.name }}">{{ field.label }}</label>
 </div>
 EOL
 
 # 创建 _field_select 模板
 cat > app/templates/partials/_field_select.html << 'EOL'
 <div class="mb-4">
-    <label class="block text-gray-700 font-semibold mb-2">{{ field.label }}</label>
-    <select 
-        name="{{ field.name }}" 
-        class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+    <label class="label label-text font-semibold">{{ field.label }}</label>
+    <select
+        name="{{ field.name }}"
+        class="select select-bordered w-full"
         {{ "required" if not field.nullable }}
     >
         {% for option in field.choices %}
@@ -897,24 +771,24 @@ EOL
 # 创建 _field_daterange 模板
 cat > app/templates/partials/_field_daterange.html << 'EOL'
 <div class="mb-4">
-    <label class="block text-gray-700 font-semibold mb-2">{{ field.label }}</label>
+    <label class="label label-text font-semibold">{{ field.label }}</label>
     <div class="grid grid-cols-2 gap-4">
         <div>
-            <label class="block text-xs text-gray-600 mb-1">開始日</label>
-            <input 
-                type="date" 
+            <label class="label label-text text-xs">開始日</label>
+            <input
+                type="date"
                 name="{{ field.name }}_start"
-                value="{{ item.start_date }}" 
-                class="w-full border border-gray-300 rounded-xl px-4 py-3"
+                value="{{ item.start_date }}"
+                class="input input-bordered w-full"
             >
         </div>
         <div>
-            <label class="block text-xs text-gray-600 mb-1">終了日</label>
-            <input 
-                type="date" 
+            <label class="label label-text text-xs">終了日</label>
+            <input
+                type="date"
                 name="{{ field.name }}_end"
-                value="{{ item.end_date }}" 
-                class="w-full border border-gray-300 rounded-xl px-4 py-3"
+                value="{{ item.end_date }}"
+                class="input input-bordered w-full"
             >
         </div>
     </div>
@@ -923,114 +797,71 @@ EOL
 
 # 创建 _pagination 模板
 cat > app/templates/partials/_pagination.html << 'EOL'
-<div class="mt-6 flex justify-center items-center space-x-2 text-sm">
+<div class="mt-6 flex justify-center">
     {% if page > 1 %}
-    <a href="?page={{ page - 1 }}&q={{ q }}" 
-       class="px-3 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">
-        ← 前へ
-    </a>
+    <a href="?page={{ page - 1 }}&q={{ q }}" class="btn btn-outline btn-primary btn-sm">← 前へ</a>
     {% endif %}
-    <span class="px-4 py-2 text-gray-800 font-semibold bg-white border border-gray-300 rounded">
-        {{ page }}
-    </span>
+    <span class="btn btn-disabled btn-sm">{{ page }}</span>
     {% if total > page * per_page %}
-    <a href="?page={{ page + 1 }}&q={{ q }}" 
-       class="px-3 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">
-        次へ →
-    </a>
+    <a href="?page={{ page + 1 }}&q={{ q }}" class="btn btn-outline btn-primary btn-sm">次へ →</a>
     {% endif %}
 </div>
 EOL
 
 # 创建 _search 模板
 cat > app/templates/partials/_search.html << 'EOL'
-<form method="get" class="mb-4 flex items-center gap-2">
-    <input type="text" name="q" value="{{ q }}" placeholder="検索キーワード"
-           class="border border-gray-300 rounded px-4 py-2 w-full max-w-xs">
-    <button type="submit"
-            class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-        検索
-    </button>
+<form method="get" class="mb-4">
+    <div class="join">
+        <input type="text" name="q" value="{{ q }}" placeholder="検索キーワード"
+               class="input input-bordered join-item">
+        <button type="submit" class="btn btn-primary join-item">検索</button>
+    </div>
 </form>
 EOL
 
 # 创建 _table 模板
 cat > app/templates/partials/_table.html << 'EOL'
-<div class="slide-in glass-effect rounded-2xl shadow-xl overflow-hidden responsive-table">
-    <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-4 lg:px-8 py-4 lg:py-6 border-b">
-        <h2 class="text-xl lg:text-2xl font-bold text-gray-800">
-            <i class="fas fa-table mr-2"></i>データ一覧
-        </h2>
-    </div>
-    <div class="overflow-x-auto">
-        <table class="min-w-full">
-            <thead class="bg-gradient-to-r from-gray-100 to-gray-200">
-                <tr>
-                    <th class="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                        <i class="fas fa-key mr-1 lg:mr-2"></i>ID
-                    </th>
-                    {% for field in fields %}
-                    <th class="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                        <i class="fas fa-info-circle mr-1 lg:mr-2"></i>
-                        <span class="hidden sm:inline">{{ field.name.replace('_', ' ').title() }}</span>
-                        <span class="sm:hidden">{{ field.name[:8] + '...' if field.name|length > 8 else field.name }}</span>
-                    </th>
-                    {% endfor %}
-                    <th class="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                        <i class="fas fa-cogs mr-1 lg:mr-2"></i>操作
-                    </th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                {% for item in items %}
-                <tr class="mobile-card hover:bg-gray-50">
-                    <td class="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm font-medium text-gray-900">
-                        <span class="bg-blue-100 text-blue-800 px-2 lg:px-3 py-1 rounded-full text-xs font-semibold">
-                            {{ item.id }}
-                        </span>
-                    </td>
-                    {% for field in fields %}
-                    <td class="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-700">
-                        <span class="truncate block" style="max-width: 120px;">
-                            {{ item[field.name] if item[field.name] is not none else '—' }}
-                        </span>
-                    </td>
-                    {% endfor %}
-                    <td class="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm font-medium">
-                        <div class="flex flex-col lg:flex-row space-y-1 lg:space-y-0 lg:space-x-2">
-                            <a href="/{{ table_name }}/{{ item.id }}" 
-                               class="btn-modern bg-blue-500 hover:bg-blue-600 text-white px-2 lg:px-4 py-1 lg:py-2 rounded-lg transition-all inline-flex items-center justify-center text-xs">
-                                <i class="fas fa-eye mr-1"></i><span class="hidden lg:inline">詳細</span>
-                            </a>
-                            <a href="/{{ table_name }}/{{ item.id }}/edit" 
-                               class="btn-modern bg-yellow-500 hover:bg-yellow-600 text-white px-2 lg:px-4 py-1 lg:py-2 rounded-lg transition-all inline-flex items-center justify-center text-xs">
-                                <i class="fas fa-edit mr-1"></i><span class="hidden lg:inline">編集</span>
-                            </a>
-                            <button hx-delete="/{{ table_name }}/{{ item.id }}" 
-                                    hx-confirm="本当に削除しますか？"
-                                    hx-target="closest tr"
-                                    hx-swap="outerHTML swap:1s"
-                                    class="btn-modern bg-red-500 hover:bg-red-600 text-white px-2 lg:px-4 py-1 lg:py-2 rounded-lg transition-all inline-flex items-center justify-center text-xs">
-                                <i class="fas fa-trash mr-1"></i><span class="hidden lg:inline">削除</span>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-                {% if not items %}
-                <tr>
-                    <td colspan="{{ fields|length + 2 }}" class="px-6 py-12 text-center">
-                        <div class="text-gray-500">
-                            <i class="fas fa-inbox text-4xl mb-4"></i>
-                            <p class="text-lg font-medium">データがありません</p>
-                            <p class="text-sm">新規作成ボタンからデータを追加してください</p>
-                        </div>
-                    </td>
-                </tr>
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
+<div class="slide-in overflow-x-auto">
+    <table class="table table-zebra table-pin-rows w-full">
+        <thead>
+        <tr>
+            <th>ID</th>
+            {% for field in fields %}
+            <th>{{ field.name.replace('_', ' ').title() }}</th>
+            {% endfor %}
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in items %}
+        <tr class="hover">
+            <td><span class="badge badge-info">{{ item.id }}</span></td>
+            {% for field in fields %}
+            <td>{{ item[field.name] if item[field.name] is not none else '—' }}</td>
+            {% endfor %}
+            <td>
+                <div class="flex gap-2">
+                    <a href="/{{ table_name }}/{{ item.id }}" class="btn btn-info btn-sm">詳細</a>
+                    <a href="/{{ table_name }}/{{ item.id }}/edit" class="btn btn-warning btn-sm">編集</a>
+                    <button hx-delete="/{{ table_name }}/{{ item.id }}"
+                            hx-confirm="本当に削除しますか？"
+                            hx-target="closest tr"
+                            hx-swap="outerHTML swap:1s"
+                            class="btn btn-error btn-sm">削除</button>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        {% if not items %}
+        <tr>
+            <td colspan="{{ fields|length + 2 }}" class="text-center p-12">
+                <i class="fas fa-inbox text-4xl mb-4"></i>
+                <p class="text-lg font-medium">データがありません</p>
+            </td>
+        </tr>
+        {% endif %}
+        </tbody>
+    </table>
 </div>
 EOL
 
@@ -1052,11 +883,11 @@ cat > app/templates/base_list.html << 'EOL'
                 </div>
                 <div class="flex space-x-4">
                     <a href="{{ new_url }}" 
-                       class="btn btn-primary join-item">
+                       class="btn-modern bg-gradient-to-r from-green-500 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-blue-700 transform hover:scale-105 shadow-lg">
                         <i class="fas fa-plus mr-2"></i>新規作成
                     </a>
                     <button onclick="location.reload()" 
-                            class="btn btn-primary join-item">
+                            class="btn-modern bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-gray-600 hover:to-gray-700 transform hover:scale-105 shadow-lg">
                         <i class="fas fa-sync-alt mr-2"></i>更新
                     </button>
                 </div>
@@ -1247,36 +1078,34 @@ EOL
 
 # 生成登录页面 模板
 cat > app/templates/login.html << 'EOL'
-
 {% extends "base.html" %}
 {% block title %}
     <title>ログイン</title>
 {% endblock %}
-
 {% block content %}
-<div class="max-w-md w-full mx-auto glass-effect rounded-2xl p-8 shadow-lg space-y-6 fade-in">
+<div class="max-w-md w-full mx-auto glass-effect rounded-box p-8 space-y-6 fade-in">
     <h1 class="text-2xl font-bold text-center text-gray-800">
-        <i class="fas fa-lock mr-2 text-purple-600"></i><span data-i18n="title">ログイン</span>
+        <i class="fas fa-lock mr-2 text-primary"></i><span data-i18n="title">ログイン</span>
     </h1>
     <form method="post" action="/login" class="space-y-4">
-        <div>
-            <label class="block text-gray-700 font-medium mb-1" data-i18n="username">ユーザーID</label>
+        <div class="form-control">
+            <label class="label label-text font-medium" for="userid">ユーザーID</label>
             <input type="text" name="userid" required
-                   class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                   class="input input-bordered w-full"
+                   placeholder="ユーザーIDを入力してください">
         </div>
-        <div>
-            <label class="block text-gray-700 font-medium mb-1" data-i18n="password">パスワード</label>
+        <div class="form-control">
+            <label class="label label-text font-medium" for="passwd">パスワード</label>
             <input type="password" name="passwd" required
-                   class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                   class="input input-bordered w-full"
+                   placeholder="パスワードを入力してください">
         </div>
-        <button type="submit"
-                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl shadow">
+        <button type="submit" class="btn btn-primary btn-block mt-4">
             <i class="fas fa-sign-in-alt mr-2"></i><span data-i18n="login">ログイン</span>
         </button>
     </form>
 </div>
 {% endblock %}
-
 {% block scripts %}
 <script src="/static/js/i18n.js"></script>
 {% endblock %}
@@ -1288,12 +1117,11 @@ cat > app/templates/unauthorized.html << 'EOL'
 {% block title %}
     <title>アクセス拒否</title>
 {% endblock %}
-
 {% block content %}
-<div class="max-w-md w-full mx-auto glass-effect rounded-2xl p-8 shadow-lg space-y-6 fade-in">
-    <h1 class="text-2xl font-bold text-red-600 mb-4 text-center">アクセス拒否</h1>
+<div class="max-w-md w-full mx-auto glass-effect rounded-box p-8 space-y-6 fade-in">
+    <h1 class="text-2xl font-bold text-error mb-4 text-center">アクセス拒否</h1>
     <p class="mb-6 text-gray-700 text-center">このページを表示する権限がありません。</p>
-    <a href="/login" class="bg-red-500 text-white px-4 py-2 rounded w-full text-center block">
+    <a href="/login" class="btn btn-error btn-block">
         ログインページへ戻る
     </a>
 </div>
@@ -1308,11 +1136,10 @@ cat > app/templates/logout.html << 'EOL'
 {% block title %}
     <title>ログアウトしました</title>
 {% endblock %}
-
 {% block content %}
-<div class="max-w-md w-full mx-auto glass-effect rounded-2xl p-8 shadow-lg space-y-6 fade-in">
+<div class="max-w-md w-full mx-auto glass-effect rounded-box p-8 space-y-6 fade-in">
     <h1 class="text-2xl font-bold mb-4 text-center">ログアウトしました</h1>
-    <a href="/login" class="bg-blue-500 text-white px-4 py-2 rounded w-full text-center block">
+    <a href="/login" class="btn btn-primary btn-block">
         再ログイン
     </a>
 </div>
@@ -1326,173 +1153,153 @@ cat > app/templates/dashboard.html << 'EOL'
 {% block title %}
     <title>ダッシュボード</title>
 {% endblock %}
-
 {% block content %}
 <!-- 快速导航卡片 -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <a href="/m_users" class="nav-card bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white card-hover">
-        <div class="flex items-center">
-            <div class="bg-white/20 rounded-full p-3 mr-4">
-                <i class="fas fa-users"></i>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold">ユーザー管理</h3>
-                <p class="text-sm opacity-90">ユーザー情報の管理</p>
-            </div>
+    <a href="/m_users" class="card card-hover bg-blue-500 hover:bg-blue-600 text-white rounded-xl p-6 flex items-center transition-all">
+        <div class="bg-white/20 rounded-full p-3 mr-4">
+            <i class="fas fa-users"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-bold">ユーザー管理</h3>
+            <p class="text-sm opacity-90">ユーザー情報の管理</p>
         </div>
     </a>
-    <a href="/t_work" class="nav-card bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
-        <div class="flex items-center">
-            <div class="bg-white/20 rounded-full p-3 mr-4">
-                <i class="fas fa-tasks"></i>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold">作業管理</h3>
-                <p class="text-sm opacity-90">作業情報の管理</p>
-            </div>
+    <a href="/t_work" class="card card-hover bg-green-500 hover:bg-green-600 text-white rounded-xl p-6 flex items-center transition-all">
+        <div class="bg-white/20 rounded-full p-3 mr-4">
+            <i class="fas fa-tasks"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-bold">作業管理</h3>
+            <p class="text-sm opacity-90">作業情報の管理</p>
         </div>
     </a>
-    
-    <a href="/m_customers" class="nav-card bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
-        <div class="flex items-center">
-            <div class="bg-white/20 rounded-full p-3 mr-4">
-                <i class="fas fa-building"></i>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold">顧客管理</h3>
-                <p class="text-sm opacity-90">顧客情報の管理</p>
-            </div>
+    <a href="/m_customers" class="card card-hover bg-purple-500 hover:bg-purple-600 text-white rounded-xl p-6 flex items-center transition-all">
+        <div class="bg-white/20 rounded-full p-3 mr-4">
+            <i class="fas fa-building"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-bold">顧客管理</h3>
+            <p class="text-sm opacity-90">顧客情報の管理</p>
         </div>
     </a>
-    
-    <a href="/m_folder" class="nav-card bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl p-6 text-white">
-        <div class="flex items-center">
-            <div class="bg-white/20 rounded-full p-3 mr-4">
-                <i class="fas fa-folder"></i>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold">フォルダ管理</h3>
-                <p class="text-sm opacity-90">フォルダ情報の管理</p>
-            </div>
+    <a href="/m_folder" class="card card-hover bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl p-6 flex items-center transition-all">
+        <div class="bg-white/20 rounded-full p-3 mr-4">
+            <i class="fas fa-folder"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-bold">フォルダ管理</h3>
+            <p class="text-sm opacity-90">フォルダ情報の管理</p>
         </div>
     </a>
 
     <!-- 新增的导航卡片 -->
-    <a href="/t_work_sub" class="nav-card bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-6 text-white">
-        <div class="flex items-center">
-            <div class="bg-white/20 rounded-full p-3 mr-4">
-                <i class="fas fa-list-ul"></i>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold">作業サブ管理</h3>
-                <p class="text-sm opacity-90">作業詳細情報の管理</p>
-            </div>
+    <a href="/t_work_sub" class="card card-hover bg-red-500 hover:bg-red-600 text-white rounded-xl p-6 flex items-center transition-all">
+        <div class="bg-white/20 rounded-full p-3 mr-4">
+            <i class="fas fa-list-ul"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-bold">作業サブ管理</h3>
+            <p class="text-sm opacity-90">作業詳細情報の管理</p>
         </div>
     </a>
-
-    <a href="/m_os" class="nav-card bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl p-6 text-white">
-        <div class="flex items-center">
-            <div class="bg-white/20 rounded-full p-3 mr-4">
-                <i class="fas fa-laptop"></i>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold">OS管理</h3>
-                <p class="text-sm opacity-90">OS情報の管理</p>
-            </div>
+    <a href="/m_os" class="card card-hover bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl p-6 flex items-center transition-all">
+        <div class="bg-white/20 rounded-full p-3 mr-4">
+            <i class="fas fa-laptop"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-bold">OS管理</h3>
+            <p class="text-sm opacity-90">OS情報の管理</p>
         </div>
     </a>
-
-    <a href="/m_version" class="nav-card bg-gradient-to-r from-pink-500 to-pink-600 rounded-xl p-6 text-white">
-        <div class="flex items-center">
-            <div class="bg-white/20 rounded-full p-3 mr-4">
-                <i class="fas fa-code-branch"></i>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold">バージョン管理</h3>
-                <p class="text-sm opacity-90">バージョン情報の管理</p>
-            </div>
+    <a href="/m_version" class="card card-hover bg-pink-500 hover:bg-pink-600 text-white rounded-xl p-6 flex items-center transition-all">
+        <div class="bg-white/20 rounded-full p-3 mr-4">
+            <i class="fas fa-code-branch"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-bold">バージョン管理</h3>
+            <p class="text-sm opacity-90">バージョン情報の管理</p>
         </div>
     </a>
-
-    <a href="/m_workclass" class="nav-card bg-gradient-to-r from-teal-500 to-teal-600 rounded-xl p-6 text-white">
-        <div class="flex items-center">
-            <div class="bg-white/20 rounded-full p-3 mr-4">
-                <i class="fas fa-tags"></i>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold">作業分類管理</h3>
-                <p class="text-sm opacity-90">作業分類情報の管理</p>
-            </div>
+    <a href="/m_workclass" class="card card-hover bg-teal-500 hover:bg-teal-600 text-white rounded-xl p-6 flex items-center transition-all">
+        <div class="bg-white/20 rounded-full p-3 mr-4">
+            <i class="fas fa-tags"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-bold">作業分類管理</h3>
+            <p class="text-sm opacity-90">作業分類情報の管理</p>
         </div>
     </a>
-
-    <a href="/t_logs" class="nav-card bg-gradient-to-r from-gray-500 to-gray-600 rounded-xl p-6 text-white">
-        <div class="flex items-center">
-            <div class="bg-white/20 rounded-full p-3 mr-4">
-                <i class="fas fa-history"></i>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold">ログ管理</h3>
-                <p class="text-sm opacity-90">システムログの管理</p>
-            </div>
+    <a href="/t_logs" class="card card-hover bg-gray-500 hover:bg-gray-600 text-white rounded-xl p-6 flex items-center transition-all">
+        <div class="bg-white/20 rounded-full p-3 mr-4">
+            <i class="fas fa-history"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-bold">ログ管理</h3>
+            <p class="text-sm opacity-90">システムログの管理</p>
         </div>
     </a>
 </div>
 
 <!-- 概览卡片 -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <div class="glass-effect rounded-xl p-6 card-hover fade-in">
-        <div class="flex items-center">
-            <div class="bg-blue-500 rounded-full p-3 mr-4 text-white">
-                <i class="fas fa-users"></i>
-            </div>
-            <div>
-                <p class="text-gray-600">ユーザー数</p>
-                <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/users" hx-trigger="load">
-                    <i class="fas fa-spinner fa-spin"></i>
-                </h3>
-            </div>
-        </div>
-    </div>
-
-    <div class="glass-effect rounded-xl p-6 card-hover fade-in">
-        <div class="flex items-center">
-            <div class="bg-green-500 rounded-full p-3 mr-4 text-white">
-                <i class="fas fa-tasks"></i>
-            </div>
-            <div>
-                <p class="text-gray-600">作業数</p>
-                <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/works" hx-trigger="load">
-                    <i class="fas fa-spinner fa-spin"></i>
-                </h3>
+    <div class="card glass-effect card-hover fade-in">
+        <div class="card-body p-6">
+            <div class="flex items-center">
+                <div class="bg-blue-500 rounded-full p-3 mr-4 text-white">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <p class="text-gray-600">ユーザー数</p>
+                    <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/users" hx-trigger="load">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </h3>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="glass-effect rounded-xl p-6 card-hover fade-in">
-        <div class="flex items-center">
-            <div class="bg-purple-500 rounded-full p-3 mr-4 text-white">
-                <i class="fas fa-folder"></i>
-            </div>
-            <div>
-                <p class="text-gray-600">フォルダ数</p>
-                <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/folders" hx-trigger="load">
-                    <i class="fas fa-spinner fa-spin"></i>
-                </h3>
+    <div class="card glass-effect card-hover fade-in">
+        <div class="card-body p-6">
+            <div class="flex items-center">
+                <div class="bg-green-500 rounded-full p-3 mr-4 text-white">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div>
+                    <p class="text-gray-600">作業数</p>
+                    <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/works" hx-trigger="load">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </h3>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="glass-effect rounded-xl p-6 card-hover fade-in">
-        <div class="flex items-center">
-            <div class="bg-yellow-500 rounded-full p-3 mr-4 text-white">
-                <i class="fas fa-chart-bar"></i>
+    <div class="card glass-effect card-hover fade-in">
+        <div class="card-body p-6">
+            <div class="flex items-center">
+                <div class="bg-purple-500 rounded-full p-3 mr-4 text-white">
+                    <i class="fas fa-folder"></i>
+                </div>
+                <div>
+                    <p class="text-gray-600">フォルダ数</p>
+                    <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/folders" hx-trigger="load">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </h3>
+                </div>
             </div>
-            <div>
-                <p class="text-gray-600">アクティビティ</p>
-                <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/activities" hx-trigger="load">
-                    <i class="fas fa-spinner fa-spin"></i>
-                </h3>
+        </div>
+    </div>
+    <div class="card glass-effect card-hover fade-in">
+        <div class="card-body p-6">
+            <div class="flex items-center">
+                <div class="bg-yellow-500 rounded-full p-3 mr-4 text-white">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div>
+                    <p class="text-gray-600">アクティビティ</p>
+                    <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/activities" hx-trigger="load">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </h3>
+                </div>
             </div>
         </div>
     </div>
@@ -1500,35 +1307,42 @@ cat > app/templates/dashboard.html << 'EOL'
 
 <!-- 图表区域 -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-    <div class="glass-effect rounded-xl p-6 card-hover fade-in">
-        <h2 class="text-lg font-bold text-gray-800 mb-4">
-            <i class="fas fa-chart-pie mr-2"></i>作業分類分布
-        </h2>
-        <canvas id="workClassChart"></canvas>
+    <div class="card glass-effect card-hover fade-in">
+        <div class="card-body p-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">
+                <i class="fas fa-chart-pie mr-2"></i>作業分類分布
+            </h2>
+            <canvas id="workClassChart"></canvas>
+        </div>
     </div>
-    <div class="glass-effect rounded-xl p-6 card-hover fade-in">
-        <h2 class="text-lg font-bold text-gray-800 mb-4">
-            <i class="fas fa-chart-line mr-2"></i>月別作業数
-        </h2>
-        <canvas id="monthlyWorkChart"></canvas>
+    <div class="card glass-effect card-hover fade-in">
+        <div class="card-body p-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">
+                <i class="fas fa-chart-line mr-2"></i>月別作業数
+            </h2>
+            <canvas id="monthlyWorkChart"></canvas>
+        </div>
     </div>
 </div>
 
 <!-- 最近的活動 -->
-<div class="glass-effect rounded-xl p-6 card-hover fade-in">
-    <h2 class="text-lg font-bold text-gray-800 mb-4">
-        <i class="fas fa-history mr-2"></i>最近の活動
-    </h2>
-    <div hx-get="/api/activities/recent" hx-trigger="load">
-        <div class="flex justify-center py-8">
-            <i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
+<div class="card glass-effect card-hover fade-in">
+    <div class="card-body p-6">
+        <h2 class="text-lg font-bold text-gray-800 mb-4">
+            <i class="fas fa-history mr-2"></i>最近の活動
+        </h2>
+        <div hx-get="/api/activities/recent" hx-trigger="load">
+            <div class="flex justify-center py-8">
+                <i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
+            </div>
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js "></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js  "></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const workClassCtx = document.getElementById('workClassChart').getContext('2d');

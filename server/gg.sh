@@ -78,6 +78,7 @@ from typing import Type
 from sqlalchemy import or_
 from app.models import get_db
 from app.core.auth import get_current_user
+from app.utils.yaml_loader import get_model_config
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -96,6 +97,7 @@ class BaseCRUD:
             per_page: int = 10,
             q: str = None
         ):
+            config = get_model_config(model.__tablename__)
             query = db.query(model)
             if q:
                 filters = [
@@ -116,6 +118,8 @@ class BaseCRUD:
                     "fields": fields,
                     "table_name": model.__tablename__,
                     "model_name": model.__name__,
+                    "layout": config.get("layout", {}),
+                    "fields": config["fields"],
                     "page": page,
                     "per_page": per_page,
                     "total": total,
@@ -146,7 +150,7 @@ class BaseCRUD:
                 "html_type": html_type
             }
 
-        from app.utils.yaml_loader import get_model_config
+
 
         def get_fields(model):
             config = get_model_config(model.__tablename__)
@@ -154,15 +158,20 @@ class BaseCRUD:
             
         @router.get("/new", response_class=HTMLResponse)
         async def create_form(request: Request):
-            fields = get_fields(model)
+            # fields = [column_to_dict(col) for col in model.__table__.columns if col.name != 'id']
+            # fields = getattr(model, '__fields__', [])
+            # fields = get_fields(model)
+            config = get_model_config(model.__tablename__)
             return templates.TemplateResponse(
                 f"{template_base}/form.html",
                 {
                     "request": request, 
                     "item": None,
-                    "fields": fields,
+                    # "fields": fields,
                     "table_name": model.__tablename__,
-                    "model_name": model.__name__
+                    "model_name": model.__name__,
+                    "layout": config.get("layout", {}),
+                    "fields": config["fields"]
                 }
             )
 
@@ -171,15 +180,20 @@ class BaseCRUD:
             item = db.query(model).filter(model.id == item_id).first()
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
-            fields = get_fields(model)
+            # fields = [column_to_dict(col) for col in model.__table__.columns if col.name != 'id']
+            # fields = getattr(model, '__fields__', [])
+            # fields = get_fields(model)
+            config = get_model_config(model.__tablename__)
             return templates.TemplateResponse(
                 f"{template_base}/form.html",
                 {
                     "request": request,
                     "item": item,
-                    "fields": fields,
+                    # "fields": fields,
                     "table_name": model.__tablename__,
-                    "model_name": model.__name__
+                    "model_name": model.__name__,
+                    "layout": config.get("layout", {}),
+                    "fields": config["fields"]
                 }
             )
         
@@ -203,7 +217,8 @@ class BaseCRUD:
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
             
-            fields = [col for col in model.__table__.columns if col.name != 'id']
+            # fields = [col for col in model.__table__.columns if col.name != 'id']
+            config = get_model_config(model.__tablename__)
             return templates.TemplateResponse(
                 f"{template_base}/detail.html",
                 {
@@ -211,7 +226,9 @@ class BaseCRUD:
                     "item": item,
                     "table_name": model.__tablename__,
                     "model_name": model.__name__,
-                    "fields": fields
+                    # "fields": fields
+                    "layout": config.get("layout", {}),
+                    "fields": config["fields"]
                 }
             )
         
@@ -297,7 +314,13 @@ TABLES = {
                 "type": "Integer", 
                 "required": True, 
                 "default": None, 
-                "label": "削除フラグ"
+                "label": "削除フラグ",
+                "widget_type": "select",
+                "choices": [
+                    {"value": 1, "label": "低"},
+                    {"value": 2, "label": "中"},
+                    {"value": 3, "label": "高"}
+                ]
             }
         ]
     },
@@ -325,7 +348,13 @@ TABLES = {
                 "type": "Integer", 
                 "required": False, 
                 "default": 0, 
-                "label": "削除フラグ"
+                "label": "削除フラグ",
+                "widget_type": "radio",
+                "choices": [
+                    {"value": 0, "label": "未完了"},
+                    {"value": 1, "label": "進行中"},
+                    {"value": 2, "label": "完了"}
+                ]
             }
         ]
     },
@@ -337,13 +366,7 @@ TABLES = {
             {"name": "passwd", "type": "String(100)", "required": True, "default": None, "label": "パスワード"},
             {"name": "fname", "type": "String(50)", "required": True, "default": None, "label": "名前"},
             {"name": "lname", "type": "String(50)", "required": True, "default": None, "label": "姓"},
-            {
-                "name": "permission", 
-                "type": "Integer", 
-                "required": True, 
-                "default": None, 
-                "label": "権限"
-            },
+            {"name": "permission", "type": "Integer", "required": True, "default": None, "label": "権限"},
             {"name": "facilitator", "type": "Integer", "required": True, "default": None, "label": "進行者"},
             {"name": "delflg", "type": "Integer", "required": True, "default": None, "label": "削除フラグ"}
         ]
@@ -401,6 +424,7 @@ class {model_name}(BaseModel):
     
 {columns}
 
+    __fields__ = {fields}
 """,
 
     "router.py.j2": """
@@ -459,6 +483,26 @@ def get_unique_types(fields):
             types.add(field_type)
     return sorted(types)
 
+# def generate_yaml(table_name, config):
+#     """生成YAML配置文件"""
+#     model_name = ''.join([word.capitalize() for word in table_name.split('_')])
+#     data = {
+#         "model": {
+#             "name": model_name,
+#             "table_name": table_name,
+#             "fields": {}
+#         }
+#     }
+
+#     for field in config["fields"]:
+#         # name = field.pop("name")
+#         name = field["name"]
+#         data["model"]["fields"][name] = field
+
+#     config_dir = Path("app/config/models")
+#     config_dir.mkdir(parents=True, exist_ok=True)
+#     with open(config_dir / f"{table_name}.yaml", "w", encoding="utf-8") as f:
+#         yaml.dump(data, f, allow_unicode=True, sort_keys=False)
 def generate_yaml(table_name, config):
     """生成YAML配置文件"""
     model_name = ''.join([word.capitalize() for word in table_name.split('_')])
@@ -467,18 +511,39 @@ def generate_yaml(table_name, config):
             "name": model_name,
             "table_name": table_name,
             "fields": {}
+        },
+        "layout": {
+            "form": {
+                "groups": [
+                    {
+                        "title": "基本情報",
+                        "fields": ["customer_id", "slip_number"]
+                    },
+                    {
+                        "title": "詳細設定",
+                        "fields": ["title"]
+                    }
+                ]
+            },
+            "list": {
+                "columns": [
+                    {"field": "id"},
+                    {"field": "slip_number"},
+                    {"field": "title"}
+                ]
+            }
         }
     }
 
     for field in config["fields"]:
-        # name = field.pop("name")
         name = field["name"]
         data["model"]["fields"][name] = field
 
-    config_dir = Path("app/config/models")
+    config_dir = Path("../config/models")
     config_dir.mkdir(parents=True, exist_ok=True)
     with open(config_dir / f"{table_name}.yaml", "w", encoding="utf-8") as f:
         yaml.dump(data, f, allow_unicode=True, sort_keys=False)
+
 
 def generate():
     for table_name, config in TABLES.items():
@@ -517,6 +582,8 @@ def generate():
             "field_types": ", ".join(get_unique_types(config["fields"])),
             "columns": "\n".join(columns)
         }
+
+        print(config["fields"])
 
         # 生成所有 模板文件
         for template_name, output_path in [
@@ -709,16 +776,8 @@ cat > app/templates/base.html << 'EOL'
         <nav class="glass-effect border-b border-white/20 sticky top-0 z-50">
             <div class="container mx-auto px-4 py-3 flex justify-between items-center">
                 <h1 class="text-xl font-bold text-gray-800">
-                    <a href="/" class="text-gray-700 hover:text-purple-600">
-                        <i class="fas fa-chart-line text-purple-600 mr-2"></i>ダッシュボード
-                    </a>
+                    <i class="fas fa-chart-line text-purple-600 mr-2"></i>ダッシュボード
                 </h1>
-                <!-- Language Switcher -->
-                <div class="flex items-center space-x-2">
-                    <button onclick="I18N.setLanguage('ja')" class="text-gray-700 hover:text-purple-600">日本語</button>
-                    <span class="text-gray-400">|</span>
-                    <button onclick="I18N.setLanguage('en')" class="text-gray-700 hover:text-purple-600">English</button>
-                </div>
                 <div class="flex items-center space-x-4">
                     <a href="/" class="text-gray-700 hover:text-purple-600">
                         <i class="fas fa-home"></i>
@@ -726,6 +785,12 @@ cat > app/templates/base.html << 'EOL'
                     <a href="/logout" class="text-gray-700 hover:text-purple-600">
                         <i class="fas fa-sign-out-alt"></i>
                     </a>
+                </div>
+                <!-- Language Switcher -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="I18N.setLanguage('ja')" class="text-gray-700 hover:text-purple-600">日本語</button>
+                    <span class="text-gray-400">|</span>
+                    <button onclick="I18N.setLanguage('en')" class="text-gray-700 hover:text-purple-600">English</button>
                 </div>
             </div>
         </nav>
@@ -743,13 +808,51 @@ cat > app/templates/base.html << 'EOL'
 </html>
 EOL
 
+# # 创建 form 模板
+# cat > app/templates/form.html << 'EOL'
+# {% extends "base.html" %}
+# {% block title %}
+#     <title>{% if item %}編集{% else %}作成{% endif %} {{ model_name }}</title>
+# {% endblock %}
+
+# {% block content %}
+# <div class="max-w-3xl w-full mx-auto glass-effect rounded-2xl p-6 sm:p-8 shadow-xl fade-in">
+#     <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-gray-800 text-center">
+#         {% if item %}編集{% else %}新規作成{% endif %} - {{ model_name }}
+#     </h1>
+#     <form method="post" 
+#         action="{% if item %}/{{ table_name }}/{{ item.id }}{% else %}/{{ table_name }}{% endif %}" 
+#         class="space-y-6">
+
+#         {% for field in fields %}
+#         {# 动态加载控件模板 #}
+#         {% set widget_template = {
+#             'radio': 'partials/_field_radio.html',
+#             'checkbox': 'partials/_field_checkbox.html',
+#             'select': 'partials/_field_select.html',
+#             'daterange': 'partials/_field_daterange.html'
+#         }.get(field.widget_type, 'partials/_field_default.html') %}
+
+#         {% include widget_template with context %}
+#         {% endfor %}
+
+#         <div class="flex flex-col sm:flex-row justify-between gap-4 pt-6">
+#             <a href="/{{ table_name }}" 
+#             class="bg-gray-200 text-gray-800 px-6 py-3 rounded-xl hover:bg-gray-300 text-center">
+#                 <i class="fas fa-arrow-left mr-2"></i>戻る
+#             </a>
+#             <button type="submit" 
+#                     class="bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 text-center">
+#                 <i class="fas fa-save mr-2"></i>保存
+#             </button>
+#         </div>
+#     </form>
+# </div>
+# {% endblock %}
+# EOL
 # 创建 form 模板
 cat > app/templates/form.html << 'EOL'
 {% extends "base.html" %}
-{% block title %}
-    <title>{% if item %}編集{% else %}作成{% endif %} {{ model_name }}</title>
-{% endblock %}
-
 {% block content %}
 <div class="max-w-3xl w-full mx-auto glass-effect rounded-2xl p-6 sm:p-8 shadow-xl fade-in">
     <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-gray-800 text-center">
@@ -758,19 +861,17 @@ cat > app/templates/form.html << 'EOL'
     <form method="post" 
         action="{% if item %}/{{ table_name }}/{{ item.id }}{% else %}/{{ table_name }}{% endif %}" 
         class="space-y-6">
-
-        {% for field in fields %}
-        {# 动态加载控件模板 #}
-        {% set widget_template = {
-            'radio': 'partials/_field_radio.html',
-            'checkbox': 'partials/_field_checkbox.html',
-            'select': 'partials/_field_select.html',
-            'daterange': 'partials/_field_daterange.html'
-        }.get(field.widget_type, 'partials/_field_default.html') %}
-
-        {% include widget_template with context %}
+        {% for group in layout.form.groups %}
+        <div class="mb-8 border-b pb-4">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4">{{ group.title }}</h2>
+            <div class="grid grid-cols-1 gap-6">
+                {% for field_name in group.fields %}
+                {% set field = fields[field_name] %}
+                {% include 'partials/_field_default.html' %}
+                {% endfor %}
+            </div>
+        </div>
         {% endfor %}
-
         <div class="flex flex-col sm:flex-row justify-between gap-4 pt-6">
             <a href="/{{ table_name }}" 
             class="bg-gray-200 text-gray-800 px-6 py-3 rounded-xl hover:bg-gray-300 text-center">
@@ -805,8 +906,8 @@ cat > app/templates/detail.html << 'EOL'
         </div>
         {% for field in fields %}
         <div>
-            <h2 class="text-gray-600 font-semibold">{{ field.name.replace('_', ' ').title() }}</h2>
-            <p class="text-base sm:text-lg text-gray-800">{{ item[field.name] if item[field.name] is not none else '—' }}</p>
+            <h2 class="text-gray-600 font-semibold">{{ field.get('name').replace('_', ' ').title() }}</h2>
+            <p class="text-base sm:text-lg text-gray-800">{{ item[field.get('name')] if item[field.get('name')] is not none else '—' }}</p>
         </div>
         {% endfor %}
     </div>
@@ -831,8 +932,8 @@ cat > app/templates/partials/_field_default.html << 'EOL'
     <label class="block text-gray-700 font-semibold mb-2">{{ field.label }}</label>
     <input 
         type="{{ field.html_type }}"
-        name="{{ field.name }}" 
-        value="{{ item[field.name] if item and item[field.name] is not none else '' }}"
+        name="{{ field.get('name') }}" 
+        value="{{ item[field.get('name')] if item and item[field.get('name')] is not none else '' }}"
         class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
         {{ "required" if not field.nullable }}
     >
@@ -847,13 +948,13 @@ cat > app/templates/partials/_field_radio.html << 'EOL'
     <div class="flex items-center space-x-2 mt-1">
         <input 
             type="radio" 
-            id="{{ field.name }}_{{ option.value }}" 
-            name="{{ field.name }}" 
+            id="{{ field.get('name') }}_{{ option.value }}" 
+            name="{{ field.get('name') }}" 
             value="{{ option.value }}" 
-            {% if item and item[field.name] == option.value %}checked{% endif %}
+            {% if item and item[field.get('name')] == option.value %}checked{% endif %}
             class="w-4 h-4 text-purple-600 focus:ring-purple-500"
         >
-        <label for="{{ field.name }}_{{ option.value }}" class="text-sm text-gray-700">
+        <label for="{{ field.get('name') }}_{{ option.value }}" class="text-sm text-gray-700">
             {{ option.label }}
         </label>
     </div>
@@ -866,13 +967,13 @@ cat > app/templates/partials/_field_checkbox.html << 'EOL'
 <div class="mb-4 flex items-center space-x-2">
     <input 
         type="checkbox" 
-        id="{{ field.name }}" 
-        name="{{ field.name }}" 
+        id="{{ field.get('name') }}" 
+        name="{{ field.get('name') }}" 
         value="1" 
-        {% if item and item[field.name] %}checked{% endif %}
+        {% if item and item[field.get('name')] %}checked{% endif %}
         class="w-4 h-4 text-purple-600 focus:ring-purple-500"
     >
-    <label for="{{ field.name }}" class="text-sm text-gray-700">{{ field.label }}</label>
+    <label for="{{ field.get('name') }}" class="text-sm text-gray-700">{{ field.label }}</label>
 </div>
 EOL
 
@@ -881,12 +982,12 @@ cat > app/templates/partials/_field_select.html << 'EOL'
 <div class="mb-4">
     <label class="block text-gray-700 font-semibold mb-2">{{ field.label }}</label>
     <select 
-        name="{{ field.name }}" 
+        name="{{ field.get('name') }}" 
         class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
         {{ "required" if not field.nullable }}
     >
         {% for option in field.choices %}
-        <option value="{{ option.value }}" {% if item and item[field.name] == option.value %}selected{% endif %}>
+        <option value="{{ option.value }}" {% if item and item[field.get('name')] == option.value %}selected{% endif %}>
             {{ option.label }}
         </option>
         {% endfor %}
@@ -903,7 +1004,7 @@ cat > app/templates/partials/_field_daterange.html << 'EOL'
             <label class="block text-xs text-gray-600 mb-1">開始日</label>
             <input 
                 type="date" 
-                name="{{ field.name }}_start"
+                name="{{ field.get('name') }}_start"
                 value="{{ item.start_date }}" 
                 class="w-full border border-gray-300 rounded-xl px-4 py-3"
             >
@@ -912,7 +1013,7 @@ cat > app/templates/partials/_field_daterange.html << 'EOL'
             <label class="block text-xs text-gray-600 mb-1">終了日</label>
             <input 
                 type="date" 
-                name="{{ field.name }}_end"
+                name="{{ field.get('name') }}_end"
                 value="{{ item.end_date }}" 
                 class="w-full border border-gray-300 rounded-xl px-4 py-3"
             >
@@ -972,8 +1073,8 @@ cat > app/templates/partials/_table.html << 'EOL'
                     {% for field in fields %}
                     <th class="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-700 uppercase tracking-wider">
                         <i class="fas fa-info-circle mr-1 lg:mr-2"></i>
-                        <span class="hidden sm:inline">{{ field.name.replace('_', ' ').title() }}</span>
-                        <span class="sm:hidden">{{ field.name[:8] + '...' if field.name|length > 8 else field.name }}</span>
+                        <span class="hidden sm:inline">{{ field.get('name').replace('_', ' ').title() }}</span>
+                        <span class="sm:hidden">{{ field.get('name')[:8] + '...' if field.get('name')|length > 8 else field.get('name') }}</span>
                     </th>
                     {% endfor %}
                     <th class="px-3 lg:px-6 py-3 lg:py-4 text-left text-xs lg:text-sm font-semibold text-gray-700 uppercase tracking-wider">
@@ -992,7 +1093,7 @@ cat > app/templates/partials/_table.html << 'EOL'
                     {% for field in fields %}
                     <td class="px-3 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-700">
                         <span class="truncate block" style="max-width: 120px;">
-                            {{ item[field.name] if item[field.name] is not none else '—' }}
+                            {{ item[field.get('name')] if item[field.get('name')] is not none else '—' }}
                         </span>
                     </td>
                     {% endfor %}
@@ -1052,11 +1153,11 @@ cat > app/templates/base_list.html << 'EOL'
                 </div>
                 <div class="flex space-x-4">
                     <a href="{{ new_url }}" 
-                       class="btn btn-primary join-item">
+                       class="btn-modern bg-gradient-to-r from-green-500 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-blue-700 transform hover:scale-105 shadow-lg">
                         <i class="fas fa-plus mr-2"></i>新規作成
                     </a>
                     <button onclick="location.reload()" 
-                            class="btn btn-primary join-item">
+                            class="btn-modern bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-gray-600 hover:to-gray-700 transform hover:scale-105 shadow-lg">
                         <i class="fas fa-sync-alt mr-2"></i>更新
                     </button>
                 </div>
@@ -1149,9 +1250,9 @@ cat > app/templates/base_list.html << 'EOL'
             <div class="grid grid-cols-1 gap-2">
                 {% for field in fields %}
                 <div class="flex justify-between items-center py-1 border-b border-gray-100 last:border-b-0">
-                    <span class="text-sm font-medium text-gray-600">{{ field.name.replace('_', ' ').title() }}:</span>
+                    <span class="text-sm font-medium text-gray-600">{{ field.get('name').replace('_', ' ').title() }}:</span>
                     <span class="text-sm text-gray-800 truncate ml-2" style="max-width: 150px;">
-                        {{ item[field.name] if item[field.name] is not none else '—' }}
+                        {{ item[field.get('name')] if item[field.get('name')] is not none else '—' }}
                     </span>
                 </div>
                 {% endfor %}
@@ -1671,6 +1772,21 @@ def create_tables():
 EOL
 
 echo "YAML 加载器工具模块..."
+# cat > app/utils/yaml_loader.py << 'EOL'
+# # app/utils/yaml_loader.py
+# import yaml
+# from pathlib import Path
+
+# CONFIG_DIR = Path(__file__).parent.parent / "config" / "models"
+
+# def get_model_config(table_name):
+#     """根据表名读取对应的YAML配置"""
+#     config_path = CONFIG_DIR / f"{table_name}.yaml"
+#     if not config_path.exists():
+#         raise FileNotFoundError(f"Config file not found: {config_path}")
+#     with open(config_path, "r", encoding="utf-8") as f:
+#         return yaml.safe_load(f)['model']
+# EOL
 cat > app/utils/yaml_loader.py << 'EOL'
 # app/utils/yaml_loader.py
 import yaml
@@ -1679,7 +1795,6 @@ from pathlib import Path
 CONFIG_DIR = Path(__file__).parent.parent / "config" / "models"
 
 def get_model_config(table_name):
-    """根据表名读取对应的YAML配置"""
     config_path = CONFIG_DIR / f"{table_name}.yaml"
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path}")
