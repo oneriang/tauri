@@ -11,7 +11,7 @@ PROJECT_NAME=$1
 PROJECT_DIR="$PWD/$PROJECT_NAME"
 
 echo "创建 项目目录结构..."
-mkdir -p $PROJECT_DIR/{app/{core,models,routers,static,static/locales,static/js,templates,templates/partials,utils},scripts/templates}
+mkdir -p $PROJECT_DIR/{app/{core,config,config/models,models,routers,static,static/locales,static/js,templates,templates/partials,utils},scripts/templates}
 cd $PROJECT_DIR
 
 cat > requirements.txt << 'EOL'
@@ -1151,229 +1151,70 @@ echo "生成仪表盘页面..."
 cat > app/templates/dashboard.html << 'EOL'
 {% extends "base.html" %}
 {% block title %}
-    <title>ダッシュボード</title>
+    <title>{{ dashboard.title }}</title>
 {% endblock %}
 {% block content %}
+
 <!-- 快速导航卡片 -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <a href="/m_users" class="card card-hover bg-blue-500 hover:bg-blue-600 text-white rounded-xl p-6 flex items-center transition-all">
-        <div class="bg-white/20 rounded-full p-3 mr-4">
-            <i class="fas fa-users"></i>
-        </div>
-        <div>
-            <h3 class="text-lg font-bold">ユーザー管理</h3>
-            <p class="text-sm opacity-90">ユーザー情報の管理</p>
-        </div>
-    </a>
-    <a href="/t_work" class="card card-hover bg-green-500 hover:bg-green-600 text-white rounded-xl p-6 flex items-center transition-all">
-        <div class="bg-white/20 rounded-full p-3 mr-4">
-            <i class="fas fa-tasks"></i>
-        </div>
-        <div>
-            <h3 class="text-lg font-bold">作業管理</h3>
-            <p class="text-sm opacity-90">作業情報の管理</p>
-        </div>
-    </a>
-    <a href="/m_customers" class="card card-hover bg-purple-500 hover:bg-purple-600 text-white rounded-xl p-6 flex items-center transition-all">
-        <div class="bg-white/20 rounded-full p-3 mr-4">
-            <i class="fas fa-building"></i>
-        </div>
-        <div>
-            <h3 class="text-lg font-bold">顧客管理</h3>
-            <p class="text-sm opacity-90">顧客情報の管理</p>
-        </div>
-    </a>
-    <a href="/m_folder" class="card card-hover bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl p-6 flex items-center transition-all">
-        <div class="bg-white/20 rounded-full p-3 mr-4">
-            <i class="fas fa-folder"></i>
-        </div>
-        <div>
-            <h3 class="text-lg font-bold">フォルダ管理</h3>
-            <p class="text-sm opacity-90">フォルダ情報の管理</p>
-        </div>
-    </a>
-
-    <!-- 新增的导航卡片 -->
-    <a href="/t_work_sub" class="card card-hover bg-red-500 hover:bg-red-600 text-white rounded-xl p-6 flex items-center transition-all">
-        <div class="bg-white/20 rounded-full p-3 mr-4">
-            <i class="fas fa-list-ul"></i>
-        </div>
-        <div>
-            <h3 class="text-lg font-bold">作業サブ管理</h3>
-            <p class="text-sm opacity-90">作業詳細情報の管理</p>
-        </div>
-    </a>
-    <a href="/m_os" class="card card-hover bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl p-6 flex items-center transition-all">
-        <div class="bg-white/20 rounded-full p-3 mr-4">
-            <i class="fas fa-laptop"></i>
-        </div>
-        <div>
-            <h3 class="text-lg font-bold">OS管理</h3>
-            <p class="text-sm opacity-90">OS情報の管理</p>
-        </div>
-    </a>
-    <a href="/m_version" class="card card-hover bg-pink-500 hover:bg-pink-600 text-white rounded-xl p-6 flex items-center transition-all">
-        <div class="bg-white/20 rounded-full p-3 mr-4">
-            <i class="fas fa-code-branch"></i>
-        </div>
-        <div>
-            <h3 class="text-lg font-bold">バージョン管理</h3>
-            <p class="text-sm opacity-90">バージョン情報の管理</p>
-        </div>
-    </a>
-    <a href="/m_workclass" class="card card-hover bg-teal-500 hover:bg-teal-600 text-white rounded-xl p-6 flex items-center transition-all">
-        <div class="bg-white/20 rounded-full p-3 mr-4">
-            <i class="fas fa-tags"></i>
-        </div>
-        <div>
-            <h3 class="text-lg font-bold">作業分類管理</h3>
-            <p class="text-sm opacity-90">作業分類情報の管理</p>
-        </div>
-    </a>
-    <a href="/t_logs" class="card card-hover bg-gray-500 hover:bg-gray-600 text-white rounded-xl p-6 flex items-center transition-all">
-        <div class="bg-white/20 rounded-full p-3 mr-4">
-            <i class="fas fa-history"></i>
-        </div>
-        <div>
-            <h3 class="text-lg font-bold">ログ管理</h3>
-            <p class="text-sm opacity-90">システムログの管理</p>
-        </div>
-    </a>
+  {% for card in dashboard.quick_nav %}
+  <a href="{{ card.path }}" class="nav-card {{ card.color }} rounded-xl p-6 text-white card-hover">
+    <div class="flex items-center">
+      <div class="bg-white/20 rounded-full p-3 mr-4">
+        <i class="{{ card.icon }}"></i>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold">{{ card.name }}</h3>
+        <p class="text-sm opacity-90">管理</p>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
 </div>
 
 <!-- 概览卡片 -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <div class="card glass-effect card-hover fade-in">
-        <div class="card-body p-6">
-            <div class="flex items-center">
-                <div class="bg-blue-500 rounded-full p-3 mr-4 text-white">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div>
-                    <p class="text-gray-600">ユーザー数</p>
-                    <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/users" hx-trigger="load">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </h3>
-                </div>
-            </div>
-        </div>
+  {% for card in dashboard.stats_cards %}
+  <div class="glass-effect rounded-xl p-6 card-hover fade-in">
+    <div class="flex items-center">
+      <div class="{{ card.color }} rounded-full p-3 mr-4 text-white">
+        <i class="{{ card.icon }}"></i>
+      </div>
+      <div>
+        <p class="text-gray-600">{{ card.label }}</p>
+        <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/{{ card.value_key }}" hx-trigger="load">
+          <i class="fas fa-spinner fa-spin"></i>
+        </h3>
+      </div>
     </div>
-    <div class="card glass-effect card-hover fade-in">
-        <div class="card-body p-6">
-            <div class="flex items-center">
-                <div class="bg-green-500 rounded-full p-3 mr-4 text-white">
-                    <i class="fas fa-tasks"></i>
-                </div>
-                <div>
-                    <p class="text-gray-600">作業数</p>
-                    <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/works" hx-trigger="load">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </h3>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="card glass-effect card-hover fade-in">
-        <div class="card-body p-6">
-            <div class="flex items-center">
-                <div class="bg-purple-500 rounded-full p-3 mr-4 text-white">
-                    <i class="fas fa-folder"></i>
-                </div>
-                <div>
-                    <p class="text-gray-600">フォルダ数</p>
-                    <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/folders" hx-trigger="load">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </h3>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="card glass-effect card-hover fade-in">
-        <div class="card-body p-6">
-            <div class="flex items-center">
-                <div class="bg-yellow-500 rounded-full p-3 mr-4 text-white">
-                    <i class="fas fa-chart-bar"></i>
-                </div>
-                <div>
-                    <p class="text-gray-600">アクティビティ</p>
-                    <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/activities" hx-trigger="load">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </h3>
-                </div>
-            </div>
-        </div>
-    </div>
+  </div>
+  {% endfor %}
 </div>
 
 <!-- 图表区域 -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-    <div class="card glass-effect card-hover fade-in">
-        <div class="card-body p-6">
-            <h2 class="text-lg font-bold text-gray-800 mb-4">
-                <i class="fas fa-chart-pie mr-2"></i>作業分類分布
-            </h2>
-            <canvas id="workClassChart"></canvas>
-        </div>
-    </div>
-    <div class="card glass-effect card-hover fade-in">
-        <div class="card-body p-6">
-            <h2 class="text-lg font-bold text-gray-800 mb-4">
-                <i class="fas fa-chart-line mr-2"></i>月別作業数
-            </h2>
-            <canvas id="monthlyWorkChart"></canvas>
-        </div>
-    </div>
+  {% for chart in dashboard.charts %}
+  <div class="glass-effect rounded-xl p-6 card-hover fade-in">
+    <h2 class="text-lg font-bold text-gray-800 mb-4">
+      <i class="{{ chart.icon }}"></i> {{ chart.title }}
+    </h2>
+    <canvas id="{{ chart.chart_id }}"></canvas>
+  </div>
+  {% endfor %}
 </div>
 
-<!-- 最近的活動 -->
-<div class="card glass-effect card-hover fade-in">
-    <div class="card-body p-6">
-        <h2 class="text-lg font-bold text-gray-800 mb-4">
-            <i class="fas fa-history mr-2"></i>最近の活動
-        </h2>
-        <div hx-get="/api/activities/recent" hx-trigger="load">
-            <div class="flex justify-center py-8">
-                <i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
-            </div>
-        </div>
+<!-- 最近的活动 -->
+<div class="glass-effect rounded-xl p-6 card-hover fade-in">
+  <h2 class="text-lg font-bold text-gray-800 mb-4">
+    <i class="fas fa-history"></i> {{ dashboard.recent_activities.title }}
+  </h2>
+  <div hx-get="{{ dashboard.recent_activities.api_url }}" hx-trigger="load">
+    <div class="flex justify-center py-8">
+      <i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
     </div>
+  </div>
 </div>
 
-{% endblock %}
-
-{% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js  "></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const workClassCtx = document.getElementById('workClassChart').getContext('2d');
-    new Chart(workClassCtx, {
-        type: 'pie',
-        data: {
-            labels: [],
-            datasets: [{
-                label: '作業分類',
-                data: [],
-                backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#6366F1', '#EC4899']
-            }]
-        },
-        options: { responsive: true, plugins: { legend: { position: 'right' } } }
-    });
-
-    const monthlyWorkCtx = document.getElementById('monthlyWorkChart').getContext('2d');
-    new Chart(monthlyWorkCtx, {
-        type: 'bar',
-        data: {
-            labels: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
-            datasets: [{ label: '作業数', data: [], backgroundColor: '#6366F1' }]
-        },
-        options: { scales: { y: { beginAtZero: true } } }
-    });
-
-    htmx.on('htmx:afterSwap', function(evt) {
-        // 更新图表逻辑...
-    });
-});
-</script>
 {% endblock %}
 EOL
 
@@ -1499,6 +1340,87 @@ def get_model_config(table_name):
         raise FileNotFoundError(f"Config file not found: {config_path}")
     with open(config_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)['model']
+
+def load_yaml_config(filename):
+    config_path = CONFIG_DIR / filename
+    with open(config_path, 'r', encoding='utf-8') as f:
+        return yaml.safe_load(f)
+EOL
+
+echo " YAML 配置文件..."
+cat > app/config/models/dashboard.yaml << 'EOL'
+dashboard:
+  title: "ダッシュボード"
+  quick_nav:
+    - name: "ユーザー管理"
+      path: "/m_users"
+      icon: "fas fa-users"
+      color: "bg-gradient-to-r from-blue-500 to-blue-600"
+    - name: "作業管理"
+      path: "/t_work"
+      icon: "fas fa-tasks"
+      color: "bg-gradient-to-r from-green-500 to-green-600"
+    - name: "顧客管理"
+      path: "/m_customers"
+      icon: "fas fa-building"
+      color: "bg-gradient-to-r from-purple-500 to-purple-600"
+    - name: "フォルダ管理"
+      path: "/m_folder"
+      icon: "fas fa-folder"
+      color: "bg-gradient-to-r from-indigo-500 to-indigo-600"
+    - name: "作業サブ管理"
+      path: "/t_work_sub"
+      icon: "fas fa-list-ul"
+      color: "bg-gradient-to-r from-red-500 to-red-600"
+    - name: "OS管理"
+      path: "/m_os"
+      icon: "fas fa-laptop"
+      color: "bg-gradient-to-r from-yellow-500 to-yellow-600"
+    - name: "バージョン管理"
+      path: "/m_version"
+      icon: "fas fa-code-branch"
+      color: "bg-gradient-to-r from-pink-500 to-pink-600"
+    - name: "作業分類管理"
+      path: "/m_workclass"
+      icon: "fas fa-tags"
+      color: "bg-gradient-to-r from-teal-500 to-teal-600"
+    - name: "ログ管理"
+      path: "/t_logs"
+      icon: "fas fa-history"
+      color: "bg-gradient-to-r from-gray-500 to-gray-600"
+
+  stats_cards:
+    - label: "ユーザー数"
+      value_key: "users"
+      icon: "fas fa-users"
+      color: "bg-blue-500"
+    - label: "作業数"
+      value_key: "works"
+      icon: "fas fa-tasks"
+      color: "bg-green-500"
+    - label: "フォルダ数"
+      value_key: "folders"
+      icon: "fas fa-folder"
+      color: "bg-purple-500"
+    - label: "アクティビティ"
+      value_key: "activities"
+      icon: "fas fa-chart-bar"
+      color: "bg-yellow-500"
+
+  charts:
+    - title: "作業分類分布"
+      chart_id: "workClassChart"
+      type: "pie"
+      api_url: "/api/charts/work-class"
+      colors: ["#3B82F6", "#10B981", "#F59E0B", "#6366F1", "#EC4899"]
+    - title: "月別作業数"
+      chart_id: "monthlyWorkChart"
+      type: "bar"
+      api_url: "/api/charts/monthly-work"
+
+  recent_activities:
+    title: "最近の活動"
+    api_url: "/api/activities/recent"
 EOL
 
 echo "生成主应用文件..."
@@ -1556,12 +1478,30 @@ include_routers()
 # async def root():
 #     return RedirectResponse(url="/docs")
 
+# @app.get("/")
+# async def root(request: Request):
+#     # 检查用户是否登录
+#     if not request.session.get("user_id"):
+#         return RedirectResponse(url="/login")
+#     return templates.TemplateResponse("dashboard.html", {"request": request})
+from app.utils.yaml_loader import load_yaml_config
+
 @app.get("/")
-async def root(request: Request):
-    # 检查用户是否登录
+async def root(request: Request, db: Session = Depends(get_db)):
+    # 获取用户信息
     if not request.session.get("user_id"):
         return RedirectResponse(url="/login")
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+
+    # 加载仪表盘配置
+    dashboard_config = load_yaml_config("dashboard.yaml")
+
+    # 合并数据
+    context = {
+        "request": request,
+        "dashboard": dashboard_config["dashboard"]
+    }
+
+    return templates.TemplateResponse("dashboard.html", context)
 
 # 仪表盘API
 @app.get("/api/stats/users")
