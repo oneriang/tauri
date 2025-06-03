@@ -96,3 +96,130 @@ SELECT code FROM m_customers Where id = {id} Order By id
 - 建议实际查阅源码确认拼接细节与参数对应关系。
 
 如需对某条SQL的具体用途或调用方法进一步说明，请告知。
+
+
+# DbConnectionDenpyoController.java 执行的所有SQL处理
+
+---
+
+## t_work_sub 相关
+
+- 插入子任务记录  
+  ```sql
+  INSERT INTO t_work_sub (work_id, workclass_id, urtime, mtime, durtime, comment, delflg, user, regdate)
+  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
+  ```
+- 更新子任务记录  
+  ```sql
+  UPDATE t_work_sub SET workclass_id=?, urtime=?, mtime=?, durtime=?, comment=?, user=?, regdate=? WHERE id=?
+  ```
+- 删除子任务记录  
+  ```sql
+  DELETE FROM t_work_sub WHERE id=?
+  ```
+- 查询指定工作对应的所有子任务  
+  ```sql
+  SELECT * FROM t_work_sub WHERE work_id=? AND delflg=false ORDER BY mtime
+  ```
+- 查询指定子任务  
+  ```sql
+  SELECT * FROM t_work_sub WHERE id=?
+  ```
+- 逻辑删除子任务  
+  ```sql
+  UPDATE t_work_sub SET delflg=true WHERE id=?
+  ```
+
+---
+
+## t_work 相关
+
+- 插入工作主记录  
+  ```sql
+  INSERT INTO t_work (customer_id, slip_number, title, facilitator_id, version_id, os_id, folder_id, delflg)
+  VALUES (?, ?, ?, ?, ?, ?, ?, false)
+  ```
+- 更新工作主记录  
+  ```sql
+  UPDATE t_work SET customer_id=?, slip_number=?, title=?, facilitator_id=?, version_id=?, os_id=?, folder_id=? WHERE id=?
+  ```
+- 逻辑删除工作主记录  
+  ```sql
+  UPDATE t_work SET delflg=true WHERE id=?
+  ```
+- 查询指定工作主记录  
+  ```sql
+  SELECT * FROM t_work WHERE id=?
+  ```
+- 查询指定传票号的工作  
+  ```sql
+  SELECT * FROM t_work WHERE slip_number=?
+  ```
+- 查询指定客户的所有工作  
+  ```sql
+  SELECT * FROM t_work WHERE customer_id=? AND delflg=false
+  ```
+- 查询所有未删除的工作  
+  ```sql
+  SELECT * FROM t_work WHERE delflg=false
+  ```
+
+---
+
+## t_work_history 相关
+
+- 插入工作历史记录  
+  ```sql
+  INSERT INTO t_work_history (work_id, action, user, regdate)
+  VALUES (?, ?, ?, ?)
+  ```
+- 查询某工作所有历史记录  
+  ```sql
+  SELECT * FROM t_work_history WHERE work_id=? ORDER BY id
+  ```
+
+---
+
+## 统计与特殊操作
+
+- 查询某传票号的工作数量  
+  ```sql
+  SELECT COUNT(*) FROM t_work WHERE slip_number=?
+  ```
+- 删除指定工作ID下所有子任务  
+  ```sql
+  DELETE FROM t_work_sub WHERE work_id=?
+  ```
+- 删除指定工作ID下所有历史  
+  ```sql
+  DELETE FROM t_work_history WHERE work_id=?
+  ```
+- 删除指定工作主记录  
+  ```sql
+  DELETE FROM t_work WHERE id=?
+  ```
+- 查询某工作下所有子任务（无delflg条件）  
+  ```sql
+  SELECT * FROM t_work_sub WHERE work_id=?
+  ```
+
+---
+
+> 注：所有 ? 均为 PreparedStatement 传入参数，实际值由调用代码传递。
+
+# LogWriter.java 执行的SQL处理
+
+---
+
+## 日志写入相关
+
+- 插入日志记录  
+  ```sql
+  INSERT INTO logs (logdate, message, status) VALUES (?, ?, ?)
+  ```
+
+---
+
+> 注：所有 `?` 为 PreparedStatement 传入参数，实际值由调用代码传递。
+
+如需具体SQL语句所在方法或更多细节，请补充说明。
