@@ -1,0 +1,40 @@
+model:
+  name: TLogs
+  table_name: t_logs
+  fields:
+    user_id:
+      name: user_id
+      type: Integer
+      required: false
+      default: null
+      label: ユーザーID
+    user_name:
+      name: user_name
+      type: String(50)
+      required: false
+      default: null
+      label: ユーザー名
+    folder_name:
+      name: folder_name
+      type: String(100)
+      required: false
+      default: null
+      label: フォルダ名
+    work_content:
+      name: work_content
+      type: Text
+      required: false
+      default: null
+      label: 作業内容
+    result:
+      name: result
+      type: Text
+      required: false
+      default: null
+      label: 結果
+    created:
+      name: created
+      type: DateTime
+      required: false
+      default: func.now()
+      label: 作成日時

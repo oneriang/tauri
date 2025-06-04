@@ -1,0 +1,16 @@
+model:
+  name: MWorkclass
+  table_name: m_workclass
+  fields:
+    name:
+      name: name
+      type: String(50)
+      required: true
+      default: null
+      label: 分類名
+    comment:
+      name: comment
+      type: String(200)
+      required: true
+      default: null
+      label: コメント

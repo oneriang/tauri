@@ -74,10 +74,15 @@ class BaseCRUD:
                 "html_type": html_type
             }
 
+        from app.utils.yaml_loader import get_model_config
+
+        def get_fields(model):
+            config = get_model_config(model.__tablename__)
+            return list(config['fields'].values())
+            
         @router.get("/new", response_class=HTMLResponse)
         async def create_form(request: Request):
-            # fields = [column_to_dict(col) for col in model.__table__.columns if col.name != 'id']
-            fields = getattr(model, '__fields__', [])
+            fields = get_fields(model)
             return templates.TemplateResponse(
                 f"{template_base}/form.html",
                 {
@@ -94,8 +99,7 @@ class BaseCRUD:
             item = db.query(model).filter(model.id == item_id).first()
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
-            # fields = [column_to_dict(col) for col in model.__table__.columns if col.name != 'id']
-            fields = getattr(model, '__fields__', [])
+            fields = get_fields(model)
             return templates.TemplateResponse(
                 f"{template_base}/form.html",
                 {

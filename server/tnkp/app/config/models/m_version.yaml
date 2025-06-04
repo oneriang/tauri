@@ -1,0 +1,28 @@
+model:
+  name: MVersion
+  table_name: m_version
+  fields:
+    name:
+      name: name
+      type: String(50)
+      required: true
+      default: null
+      label: バージョン名
+    comment:
+      name: comment
+      type: String(200)
+      required: true
+      default: null
+      label: コメント
+    delflg:
+      name: delflg
+      type: Integer
+      required: false
+      default: 0
+      label: 削除フラグ
+    sort:
+      name: sort
+      type: Integer
+      required: true
+      default: null
+      label: ソート順

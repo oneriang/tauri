@@ -1,0 +1,22 @@
+model:
+  name: MCustomers
+  table_name: m_customers
+  fields:
+    code:
+      name: code
+      type: String(20)
+      required: true
+      default: null
+      label: 顧客コード
+    name:
+      name: name
+      type: String(100)
+      required: true
+      default: null
+      label: 顧客名
+    delflg:
+      name: delflg
+      type: Integer
+      required: true
+      default: null
+      label: 削除フラグ

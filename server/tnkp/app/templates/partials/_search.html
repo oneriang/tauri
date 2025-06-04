@@ -1,8 +1,7 @@
-<form method="get" class="mb-4 flex items-center gap-2">
-    <input type="text" name="q" value="{{ q }}" placeholder="検索キーワード"
-           class="border border-gray-300 rounded px-4 py-2 w-full max-w-xs">
-    <button type="submit"
-            class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-        検索
-    </button>
+<form method="get" class="mb-4">
+    <div class="join">
+        <input type="text" name="q" value="{{ q }}" placeholder="検索キーワード"
+               class="input input-bordered join-item">
+        <button type="submit" class="btn btn-primary join-item">検索</button>
+    </div>
 </form>

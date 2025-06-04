@@ -51,12 +51,30 @@ include_routers()
 # async def root():
 #     return RedirectResponse(url="/docs")
 
+# @app.get("/")
+# async def root(request: Request):
+#     # 检查用户是否登录
+#     if not request.session.get("user_id"):
+#         return RedirectResponse(url="/login")
+#     return templates.TemplateResponse("dashboard.html", {"request": request})
+from app.utils.yaml_loader import load_yaml_config
+
 @app.get("/")
-async def root(request: Request):
-    # 检查用户是否登录
+async def root(request: Request, db: Session = Depends(get_db)):
+    # 获取用户信息
     if not request.session.get("user_id"):
         return RedirectResponse(url="/login")
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+
+    # 加载仪表盘配置
+    dashboard_config = load_yaml_config("dashboard.yaml")
+
+    # 合并数据
+    context = {
+        "request": request,
+        "dashboard": dashboard_config["dashboard"]
+    }
+
+    return templates.TemplateResponse("dashboard.html", context)
 
 # 仪表盘API
 @app.get("/api/stats/users")

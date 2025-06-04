@@ -1,0 +1,64 @@
+model:
+  name: TWork
+  table_name: t_work
+  fields:
+    customer_id:
+      name: customer_id
+      type: Integer
+      required: true
+      default: null
+      label: 顧客ID
+    slip_number:
+      name: slip_number
+      type: String(50)
+      required: true
+      default: null
+      label: 伝票番号
+    title:
+      name: title
+      type: String(200)
+      required: true
+      default: null
+      label: タイトル
+    facilitator_id:
+      name: facilitator_id
+      type: String(50)
+      required: true
+      default: null
+      label: 進行者ID
+    version_id:
+      name: version_id
+      type: Integer
+      required: true
+      default: null
+      label: バージョンID
+    os_id:
+      name: os_id
+      type: Integer
+      required: true
+      default: null
+      label: OS ID
+    folder_id:
+      name: folder_id
+      type: Integer
+      required: true
+      default: null
+      label: フォルダID
+    delflg:
+      name: delflg
+      type: Integer
+      required: false
+      default: 0
+      label: 削除フラグ
+    mountflg:
+      name: mountflg
+      type: Integer
+      required: false
+      default: 0
+      label: マウントフラグ
+    mountflgstr:
+      name: mountflgstr
+      type: String(10)
+      required: false
+      default: null
+      label: マウントフラグ文字列

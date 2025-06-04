@@ -2,6 +2,16 @@
 from sqlalchemy import Column, Integer, String
 from app.core.base_model import BaseModel
 
+import yaml
+import os
+
+# 获取当前模块路径
+current_dir = os.getcwd()
+config_path = os.path.join(current_dir, 'app', 'config', 'models', 'm_users.yaml')
+
+with open(config_path, 'r', encoding='utf-8') as f:
+    config = yaml.safe_load(f)
+
 class MUsers(BaseModel):
     __tablename__ = "m_users"
     
@@ -13,45 +23,3 @@ class MUsers(BaseModel):
     facilitator = Column(Integer)
     delflg = Column(Integer)
 
-    __fields__ = [   {   'default': None,
-        'html_type': 'text',
-        'label': 'ユーザーID',
-        'name': 'userid',
-        'required': True,
-        'type': 'String(50)'},
-    {   'default': None,
-        'html_type': 'text',
-        'label': 'パスワード',
-        'name': 'passwd',
-        'required': True,
-        'type': 'String(100)'},
-    {   'default': None,
-        'html_type': 'text',
-        'label': '名前',
-        'name': 'fname',
-        'required': True,
-        'type': 'String(50)'},
-    {   'default': None,
-        'html_type': 'text',
-        'label': '姓',
-        'name': 'lname',
-        'required': True,
-        'type': 'String(50)'},
-    {   'default': None,
-        'html_type': 'number',
-        'label': '権限',
-        'name': 'permission',
-        'required': True,
-        'type': 'Integer'},
-    {   'default': None,
-        'html_type': 'number',
-        'label': '進行者',
-        'name': 'facilitator',
-        'required': True,
-        'type': 'Integer'},
-    {   'default': None,
-        'html_type': 'number',
-        'label': '削除フラグ',
-        'name': 'delflg',
-        'required': True,
-        'type': 'Integer'}]

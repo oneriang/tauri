@@ -1,53 +1,47 @@
 <!DOCTYPE html>
-<html lang="ja">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        {% block title %}
-            <title>FastAPI CRUD アプリ</title>
-        {% endblock %}
+<html lang="ja" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% block title %}
+        <title>FastAPI CRUD アプリ</title>
+    {% endblock %}
+    <!-- DaisyUI + Tailwind -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css"  rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script> 
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"  rel="stylesheet">
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script> 
 
-        <!-- Tailwind CSS -->
-        <script src="https://cdn.tailwindcss.com "></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-in {
+            animation: slideIn 0.6s ease-out forwards;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 
-        <!-- Font Awesome -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-
-        <!-- HTMX -->
-        <script src="https://unpkg.com/htmx.org@1.9.6"></script>
-
-        <!-- 自定义样式 -->
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-            body { font-family: 'Inter', sans-serif; }
-
-            .glass-effect {
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-            }
-            .gradient-bg {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            }
-            .fade-in {
-                animation: fadeIn 0.8s ease-out forwards;
-            }
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(20px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            .slide-in {
-                animation: slideIn 0.6s ease-out forwards;
-            }
-            @keyframes slideIn {
-                from { transform: translateX(-20px); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            .card-hover:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
-            }
-        </style>
 
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -147,42 +141,34 @@
                 transform: translateX(0);
             }
         </style>
+        
+    {% block head_extra %}
+    {% endblock %}
+</head>
+<body class="bg-base-200">
+<!-- 导航栏 -->
+<nav class="navbar bg-base-100 sticky top-0 z-50 glass-effect">
+  <div class="flex-1">
+    <a href="/" class="btn btn-ghost normal-case text-xl">
+        <i class="fas fa-chart-line mr-2"></i>ダッシュボード
+    </a>
+  </div>
+  <div class="flex-none gap-2">
+    <button onclick="I18N.setLanguage('ja')">日本語</button>
+    <span>|</span>
+    <button onclick="I18N.setLanguage('en')">English</button>
+    <a href="/logout" class="btn btn-square btn-ghost"><i class="fas fa-sign-out-alt"></i></a>
+  </div>
+</nav>
 
-        {% block head_extra %}
-        {% endblock %}
-    </head>
-    <body class="gradient-bg">
-        <!-- 导航栏 -->
-        <nav class="glass-effect border-b border-white/20 sticky top-0 z-50">
-            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-                <h1 class="text-xl font-bold text-gray-800">
-                    <i class="fas fa-chart-line text-purple-600 mr-2"></i>ダッシュボード
-                </h1>
-                <div class="flex items-center space-x-4">
-                    <a href="/" class="text-gray-700 hover:text-purple-600">
-                        <i class="fas fa-home"></i>
-                    </a>
-                    <a href="/logout" class="text-gray-700 hover:text-purple-600">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </a>
-                </div>
-                <!-- Language Switcher -->
-                <div class="flex items-center space-x-2">
-                    <button onclick="I18N.setLanguage('ja')" class="text-gray-700 hover:text-purple-600">日本語</button>
-                    <span class="text-gray-400">|</span>
-                    <button onclick="I18N.setLanguage('en')" class="text-gray-700 hover:text-purple-600">English</button>
-                </div>
-            </div>
-        </nav>
+<!-- 页面主体内容 -->
+<div class="container mx-auto px-4 py-6">
+    {% block content %}
+    {% endblock %}
+</div>
 
-        <!-- 页面主体内容 -->
-        <div class="container mx-auto px-4 py-6">
-            {% block content %}
-            {% endblock %}
-        </div>
-
-        <!-- 脚本 -->
-        {% block scripts %}
-        {% endblock %}
-    </body>
+<!-- 脚本 -->
+{% block scripts %}
+{% endblock %}
+</body>
 </html>

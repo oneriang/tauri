@@ -1,11 +1,11 @@
 <div class="mb-4 flex items-center space-x-2">
-    <input 
-        type="checkbox" 
-        id="{{ field.name }}" 
-        name="{{ field.name }}" 
-        value="1" 
+    <input
+        type="checkbox"
+        id="{{ field.name }}"
+        name="{{ field.name }}"
+        value="1"
         {% if item and item[field.name] %}checked{% endif %}
-        class="w-4 h-4 text-purple-600 focus:ring-purple-500"
+        class="checkbox checkbox-primary"
     >
-    <label for="{{ field.name }}" class="text-sm text-gray-700">{{ field.label }}</label>
+    <label for="{{ field.name }}">{{ field.label }}</label>
 </div>

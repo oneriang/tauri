@@ -2,89 +2,29 @@
 {% block title %}
     <title>{% if item %}編集{% else %}作成{% endif %} {{ model_name }}</title>
 {% endblock %}
-
 {% block content %}
-<div class="max-w-3xl w-full mx-auto glass-effect rounded-2xl p-6 sm:p-8 shadow-xl fade-in">
-    <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-gray-800 text-center">
+<div class="max-w-3xl w-full mx-auto glass-effect rounded-box p-6 sm:p-8 card fade-in">
+    <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-center text-gray-800">
         {% if item %}編集{% else %}新規作成{% endif %} - {{ model_name }}
     </h1>
-    <form method="post" 
-        action="{% if item %}/{{ table_name }}/{{ item.id }}{% else %}/{{ table_name }}{% endif %}" 
-        class="space-y-6">
-
+    <form method="post"
+          action="{% if item %}/{{ table_name }}/{{ item.id }}{% else %}/{{ table_name }}{% endif %}"
+          class="space-y-6">
         {% for field in fields %}
-        {# 动态加载控件模板 #}
         {% set widget_template = {
             'radio': 'partials/_field_radio.html',
             'checkbox': 'partials/_field_checkbox.html',
             'select': 'partials/_field_select.html',
             'daterange': 'partials/_field_daterange.html'
         }.get(field.widget_type, 'partials/_field_default.html') %}
-
         {% include widget_template with context %}
         {% endfor %}
-
-        {% for field in fields %}
-        <div>
-            <label class="block text-gray-700 font-semibold mb-2">
-                {{ field.name.replace('_', ' ').title() }}
-            </label>
-            {% set field_value = item[field.name] if item and item[field.name] is not none else '' %}
-            <input 
-                type="{% if 'Integer' in field.type.__class__.__name__ %}number{% else %}text{% endif %}"
-                name="{{ field.name }}" 
-                value="{{ field_value }}"
-                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500"
-                {% if not field.nullable %}required{% endif %}>
-        </div>
-        {% endfor %}
-        
-        {% for field in fields %}
-        <div>
-            <label class="block text-gray-700 font-semibold mb-2">
-                {{ field.name.replace('_', ' ').title() }}
-            </label>
-            {% set field_value = item[field.name] if item and item[field.name] is not none else '' %}
-            
-            {% if field.html_type == 'textarea' %}
-            <textarea 
-                name="{{ field.name }}{% if not field.nullable %}" required{% endif %} 
-                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >{{ field_value }}</textarea>
-            
-            {% elif field.html_type == 'checkbox' %}
-            <input 
-                type="checkbox" 
-                name="{{ field.name }}{% if not field.nullable %}" required{% endif %} 
-                value="1" 
-                {% if field_value %}checked{% endif %} 
-                class="rounded text-purple-600 focus:ring-purple-500">
-            
-            {% elif field.html_type == 'date' or field.html_type == 'datetime-local' %}
-            <input 
-                type="{{ field.html_type }}{% if not field.nullable %}" required{% endif %} 
-                name="{{ field.name }}{% if not field.nullable %}" required{% endif %} 
-                value="{% if field_value %}{ field_value.isoformat().split('.')[0].replace(' ', 'T') }{% endif %}"
-                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500">
-            
-            {% else %}
-            <input 
-                type="text" 
-                name="{{ field.name }}{% if not field.nullable %}" required{% endif %} 
-                value="{{ field_value }}"
-                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500">
-            {% endif %}
-        </div>
-        {% endfor %}
-
         <div class="flex flex-col sm:flex-row justify-between gap-4 pt-6">
-            <a href="/{{ table_name }}" 
-            class="bg-gray-200 text-gray-800 px-6 py-3 rounded-xl hover:bg-gray-300 text-center">
+            <a href="/{{ table_name }}" class="btn btn-outline btn-secondary">
                 <i class="fas fa-arrow-left mr-2"></i>戻る
             </a>
-            <button type="submit" 
-                    class="bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 text-center">
-                <i class="fas fa-save mr-2"></i>保存
+            <button type="submit" class="btn btn-primary gap-2">
+                <i class="fas fa-save"></i>保存
             </button>
         </div>
     </form>

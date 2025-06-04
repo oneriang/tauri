@@ -1,17 +1,9 @@
-<div class="mt-6 flex justify-center items-center space-x-2 text-sm">
+<div class="mt-6 flex justify-center">
     {% if page > 1 %}
-    <a href="?page={{ page - 1 }}&q={{ q }}" 
-       class="px-3 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">
-        ← 前へ
-    </a>
+    <a href="?page={{ page - 1 }}&q={{ q }}" class="btn btn-outline btn-primary btn-sm">← 前へ</a>
     {% endif %}
-    <span class="px-4 py-2 text-gray-800 font-semibold bg-white border border-gray-300 rounded">
-        {{ page }}
-    </span>
+    <span class="btn btn-disabled btn-sm">{{ page }}</span>
     {% if total > page * per_page %}
-    <a href="?page={{ page + 1 }}&q={{ q }}" 
-       class="px-3 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">
-        次へ →
-    </a>
+    <a href="?page={{ page + 1 }}&q={{ q }}" class="btn btn-outline btn-primary btn-sm">次へ →</a>
     {% endif %}
 </div>

@@ -1,0 +1,52 @@
+model:
+  name: TWorkSub
+  table_name: t_work_sub
+  fields:
+    work_id:
+      name: work_id
+      type: Integer
+      required: true
+      default: null
+      label: 作業ID
+    workclass_id:
+      name: workclass_id
+      type: Integer
+      required: true
+      default: null
+      label: 作業分類ID
+    urtime:
+      name: urtime
+      type: DateTime
+      required: false
+      default: null
+      label: 開始時間
+    mtime:
+      name: mtime
+      type: DateTime
+      required: false
+      default: null
+      label: 変更時間
+    durtime:
+      name: durtime
+      type: DateTime
+      required: false
+      default: null
+      label: 実行時間
+    comment:
+      name: comment
+      type: Text
+      required: true
+      default: null
+      label: コメント
+    working_user_id:
+      name: working_user_id
+      type: Integer
+      required: true
+      default: null
+      label: 作業者ID
+    delflg:
+      name: delflg
+      type: Integer
+      required: true
+      default: null
+      label: 削除フラグ

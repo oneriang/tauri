@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 import pprint
 
+import yaml
+
 # 表定义配置（日语字段说明）
 TABLES = {
     "t_work": {
@@ -43,13 +45,7 @@ TABLES = {
                 "type": "Integer", 
                 "required": True, 
                 "default": None, 
-                "label": "削除フラグ",
-                "widget_type": "select",
-                "choices": [
-                    {"value": 1, "label": "低"},
-                    {"value": 2, "label": "中"},
-                    {"value": 3, "label": "高"}
-                ]
+                "label": "削除フラグ"
             }
         ]
     },
@@ -77,13 +73,7 @@ TABLES = {
                 "type": "Integer", 
                 "required": False, 
                 "default": 0, 
-                "label": "削除フラグ",
-                "widget_type": "radio",
-                "choices": [
-                    {"value": 0, "label": "未完了"},
-                    {"value": 1, "label": "進行中"},
-                    {"value": 2, "label": "完了"}
-                ]
+                "label": "削除フラグ"
             }
         ]
     },
@@ -95,7 +85,13 @@ TABLES = {
             {"name": "passwd", "type": "String(100)", "required": True, "default": None, "label": "パスワード"},
             {"name": "fname", "type": "String(50)", "required": True, "default": None, "label": "名前"},
             {"name": "lname", "type": "String(50)", "required": True, "default": None, "label": "姓"},
-            {"name": "permission", "type": "Integer", "required": True, "default": None, "label": "権限"},
+            {
+                "name": "permission", 
+                "type": "Integer", 
+                "required": True, 
+                "default": None, 
+                "label": "権限"
+            },
             {"name": "facilitator", "type": "Integer", "required": True, "default": None, "label": "進行者"},
             {"name": "delflg", "type": "Integer", "required": True, "default": None, "label": "削除フラグ"}
         ]
@@ -138,12 +134,21 @@ TEMPLATES = {
 from sqlalchemy import Column, {field_types}
 from app.core.base_model import BaseModel
 
+import yaml
+import os
+
+# 获取当前模块路径
+current_dir = os.getcwd()
+config_path = os.path.join(current_dir, 'app', 'config', 'models', '{table_name}.yaml')
+
+with open(config_path, 'r', encoding='utf-8') as f:
+    config = yaml.safe_load(f)
+
 class {model_name}(BaseModel):
     __tablename__ = "{table_name}"
     
 {columns}
 
-    __fields__ = {fields}
 """,
 
     "router.py.j2": """
@@ -202,8 +207,32 @@ def get_unique_types(fields):
             types.add(field_type)
     return sorted(types)
 
+def generate_yaml(table_name, config):
+    """生成YAML配置文件"""
+    model_name = ''.join([word.capitalize() for word in table_name.split('_')])
+    data = {
+        "model": {
+            "name": model_name,
+            "table_name": table_name,
+            "fields": {}
+        }
+    }
+
+    for field in config["fields"]:
+        # name = field.pop("name")
+        name = field["name"]
+        data["model"]["fields"][name] = field
+
+    config_dir = Path("app/config/models")
+    config_dir.mkdir(parents=True, exist_ok=True)
+    with open(config_dir / f"{table_name}.yaml", "w", encoding="utf-8") as f:
+        yaml.dump(data, f, allow_unicode=True, sort_keys=False)
+
 def generate():
     for table_name, config in TABLES.items():
+
+        generate_yaml(table_name, config)
+
         model_name = ''.join([word.capitalize() for word in table_name.split('_')])
         
         # 生成字段定义
@@ -236,8 +265,6 @@ def generate():
             "field_types": ", ".join(get_unique_types(config["fields"])),
             "columns": "\n".join(columns)
         }
-
-        print(config["fields"])
 
         # 生成所有 模板文件
         for template_name, output_path in [

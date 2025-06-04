@@ -1,0 +1,46 @@
+model:
+  name: MUsers
+  table_name: m_users
+  fields:
+    userid:
+      name: userid
+      type: String(50)
+      required: true
+      default: null
+      label: ユーザーID
+    passwd:
+      name: passwd
+      type: String(100)
+      required: true
+      default: null
+      label: パスワード
+    fname:
+      name: fname
+      type: String(50)
+      required: true
+      default: null
+      label: 名前
+    lname:
+      name: lname
+      type: String(50)
+      required: true
+      default: null
+      label: 姓
+    permission:
+      name: permission
+      type: Integer
+      required: true
+      default: null
+      label: 権限
+    facilitator:
+      name: facilitator
+      type: Integer
+      required: true
+      default: null
+      label: 進行者
+    delflg:
+      name: delflg
+      type: Integer
+      required: true
+      default: null
+      label: 削除フラグ

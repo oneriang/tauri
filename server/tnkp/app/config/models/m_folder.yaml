@@ -1,0 +1,46 @@
+model:
+  name: MFolder
+  table_name: m_folder
+  fields:
+    name:
+      name: name
+      type: String(100)
+      required: true
+      default: null
+      label: フォルダ名
+    ip:
+      name: ip
+      type: String(50)
+      required: true
+      default: null
+      label: IPアドレス
+    path:
+      name: path
+      type: String(200)
+      required: true
+      default: null
+      label: パス
+    admin:
+      name: admin
+      type: Integer
+      required: true
+      default: null
+      label: 管理者
+    user_name:
+      name: user_name
+      type: String(50)
+      required: true
+      default: null
+      label: ユーザー名
+    passwd:
+      name: passwd
+      type: String(100)
+      required: true
+      default: null
+      label: パスワード
+    delflg:
+      name: delflg
+      type: Integer
+      required: false
+      default: 0
+      label: 削除フラグ
