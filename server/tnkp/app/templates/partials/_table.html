@@ -20,11 +20,15 @@
                 <div class="flex gap-2">
                     <a href="/{{ table_name }}/{{ item.id }}" class="btn btn-info btn-sm">詳細</a>
                     <a href="/{{ table_name }}/{{ item.id }}/edit" class="btn btn-warning btn-sm">編集</a>
-                    <button hx-delete="/{{ table_name }}/{{ item.id }}"
-                            hx-confirm="本当に削除しますか？"
-                            hx-target="closest tr"
-                            hx-swap="outerHTML swap:1s"
-                            class="btn btn-error btn-sm">削除</button>
+                    <button 
+                        type="button"
+                        class="btn btn-error btn-sm"
+                        data-delete-url="/{{ table_name }}/{{ item.id }}"
+                        hx-target="closest tr"
+                        hx-swap="outerHTML swap:1s"
+                        onclick="showDeleteModal(this)">
+                        削除
+                    </button>
                 </div>
             </td>
         </tr>

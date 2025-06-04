@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Response, status
+from fastapi.responses import Response as FastAPIResponse
 from sqlalchemy.orm import Session
 from fastapi.templating import Jinja2Templates
 from typing import Type
@@ -131,7 +133,8 @@ class BaseCRUD:
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
             
-            fields = [col for col in model.__table__.columns if col.name != 'id']
+            # fields = [col for col in model.__table__.columns if col.name != 'id']
+            fields = get_fields(model)
             return templates.TemplateResponse(
                 f"{template_base}/detail.html",
                 {
@@ -168,6 +171,9 @@ class BaseCRUD:
             
             db.delete(item)
             db.commit()
-            return {"message": "Item deleted successfully"}
+            # return {"message": "Item deleted successfully"}
+            # 返回204 + HX-Trigger Header，HTMX前端可监听此Header弹toast
+            headers = {"HX-Trigger": '{"toast": "削除しました"}'}
+            return FastAPIResponse(status_code=status.HTTP_204_NO_CONTENT, headers=headers)
 
         return router

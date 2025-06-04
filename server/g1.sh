@@ -203,7 +203,7 @@ class BaseCRUD:
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
             
-            fields = [col for col in model.__table__.columns if col.name != 'id']
+            fields = get_fields(model)
             return templates.TemplateResponse(
                 f"{template_base}/detail.html",
                 {
@@ -241,7 +241,10 @@ class BaseCRUD:
             db.delete(item)
             db.commit()
             return {"message": "Item deleted successfully"}
-
+            # 返回204 + HX-Trigger Header，HTMX前端可监听此Header弹toast
+            headers = {"HX-Trigger": '{"toast": "削除しました"}'}
+            return FastAPIResponse(status_code=status.HTTP_204_NO_CONTENT, headers=headers)
+            
         return router
 EOL
 
@@ -620,6 +623,44 @@ cat > app/templates/base.html << 'EOL'
     {% endblock %}
 </div>
 
+
+<!-- 删除确认模态框 -->
+<div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded shadow-lg p-6 w-full max-w-sm">
+    <div class="mb-4 text-lg text-gray-800 font-semibold">本当に削除しますか？</div>
+    <div class="flex justify-end space-x-3">
+      <button class="btn btn-secondary" onclick="hideDeleteModal()">キャンセル</button>
+      <button id="delete-modal-confirm" class="btn btn-error">削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认模态框脚本 -->
+<script>
+let deleteTargetButton = null;
+
+function showDeleteModal(button) {
+  deleteTargetButton = button;
+  document.getElementById('delete-modal').classList.remove('hidden');
+}
+
+function hideDeleteModal() {
+  document.getElementById('delete-modal').classList.add('hidden');
+}
+
+// 点击确认后，手动触发 HTMX 的 DELETE 请求
+document.getElementById('delete-modal-confirm').addEventListener('click', function() {
+  if (deleteTargetButton) {
+    // 触发 htmx 请求
+    htmx.ajax('DELETE', deleteTargetButton.getAttribute('data-delete-url'), {
+      target: deleteTargetButton.getAttribute('hx-target'),
+      swap: deleteTargetButton.getAttribute('hx-swap') || 'outerHTML swap:1s'
+    });
+    hideDeleteModal();
+  }
+});
+</script>
+
 <!-- 脚本 -->
 {% block scripts %}
 {% endblock %}
@@ -667,32 +708,27 @@ EOL
 cat > app/templates/detail.html << 'EOL'
 {% extends "base.html" %}
 {% block title %}
-    <title>{{ model_name }} 詳細</title>
+    <title>詳細 {{ model_name }}</title>
 {% endblock %}
 {% block content %}
-<div class="max-w-4xl w-full mx-auto glass-effect rounded-box p-6 sm:p-8 card fade-in">
-    <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-center sm:text-left">
-        <i class="fas fa-info-circle text-primary mr-2"></i>{{ model_name }} 詳細
+<div class="max-w-3xl w-full mx-auto glass-effect rounded-box p-6 sm:p-8 card fade-in">
+    <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-center text-gray-800">
+        詳細 - {{ model_name }}
     </h1>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-            <h2 class="font-semibold">ID</h2>
-            <p class="text-lg">{{ item.id }}</p>
-        </div>
+    <div class="space-y-6">
         {% for field in fields %}
-        <div>
-            <h2 class="font-semibold">{{ field.name.replace('_', ' ').title() }}</h2>
-            <p class="text-lg">{{ item[field.name] if item[field.name] is not none else '—' }}</p>
+        <div class="flex flex-col gap-2">
+            <label class="font-semibold text-gray-700">{{ field.verbose_name or field.name.replace('_', ' ').title() }}</label>
+            <div class="px-4 py-2 rounded bg-gray-100 text-gray-800 break-all">
+                {{ item[field.name] if item[field.name] is not none else '—' }}
+            </div>
         </div>
         {% endfor %}
-    </div>
-    <div class="flex flex-col sm:flex-row justify-end mt-8 space-y-4 sm:space-y-0 sm:space-x-4">
-        <a href="/{{ table_name }}/{{ item.id }}/edit" class="btn btn-warning gap-2">
-            <i class="fas fa-edit"></i>編集
-        </a>
-        <a href="/{{ table_name }}" class="btn btn-neutral gap-2">
-            <i class="fas fa-list"></i>一覧へ戻る
-        </a>
+        <div class="flex flex-col sm:flex-row justify-between gap-4 pt-6">
+            <a href="/{{ table_name }}" class="btn btn-outline btn-secondary">
+                <i class="fas fa-arrow-left mr-2"></i>戻る
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -843,11 +879,15 @@ cat > app/templates/partials/_table.html << 'EOL'
                 <div class="flex gap-2">
                     <a href="/{{ table_name }}/{{ item.id }}" class="btn btn-info btn-sm">詳細</a>
                     <a href="/{{ table_name }}/{{ item.id }}/edit" class="btn btn-warning btn-sm">編集</a>
-                    <button hx-delete="/{{ table_name }}/{{ item.id }}"
-                            hx-confirm="本当に削除しますか？"
-                            hx-target="closest tr"
-                            hx-swap="outerHTML swap:1s"
-                            class="btn btn-error btn-sm">削除</button>
+                    <button 
+                        type="button"
+                        class="btn btn-error btn-sm"
+                        data-delete-url="/{{ table_name }}/{{ item.id }}"
+                        hx-target="closest tr"
+                        hx-swap="outerHTML swap:1s"
+                        onclick="showDeleteModal(this)">
+                        削除
+                    </button>
                 </div>
             </td>
         </tr>
@@ -862,6 +902,65 @@ cat > app/templates/partials/_table.html << 'EOL'
         {% endif %}
         </tbody>
     </table>
+</div>
+EOL
+
+
+# 创建 _mobile_card 模板
+cat > app/templates/partials/_mobile_card.html << 'EOL'
+<div class="block lg:hidden mobile-card-view space-y-4">
+    <div class="glass-effect rounded-xl p-4 shadow-lg">
+        <h2 class="text-lg font-bold text-gray-800 mb-4">
+            <i class="fas fa-list mr-2"></i>データ一覧
+        </h2>
+    </div>
+    {% for item in items %}
+    <div class="glass-effect rounded-xl p-4 shadow-lg mobile-card">
+        <div class="flex justify-between items-start mb-3">
+            <div class="flex items-center">
+                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold mr-3">
+                    ID: {{ item.id }}
+                </span>
+            </div>
+            <div class="flex space-x-2">
+                <a href="/{{ table_name }}/{{ item.id }}" class="bg-blue-500 text-white p-2 rounded-lg">
+                    <i class="fas fa-eye text-xs"></i>
+                </a>
+                <a href="/{{ table_name }}/{{ item.id }}/edit" class="bg-yellow-500 text-white p-2 rounded-lg">
+                    <i class="fas fa-edit text-xs"></i>
+                </a>
+                <button 
+                    type="button"
+                    class="bg-red-500 text-white p-2 rounded-lg"
+                    data-delete-url="/{{ table_name }}/{{ item.id }}"
+                    hx-target="closest .mobile-card"
+                    hx-swap="outerHTML swap:1s"
+                    onclick="showDeleteModal(this)">
+                    <i class="fas fa-trash text-xs"></i>
+                </button>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 gap-2">
+            {% for field in fields %}
+            <div class="flex justify-between items-center py-1 border-b border-gray-100 last:border-b-0">
+                <span class="text-sm font-medium text-gray-600">{{ field.name.replace('_', ' ').title() }}:</span>
+                <span class="text-sm text-gray-800 truncate ml-2" style="max-width: 150px;">
+                    {{ item[field.name] if item[field.name] is not none else '—' }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+    {% if not items %}
+    <div class="glass-effect rounded-xl p-8 text-center">
+        <div class="text-gray-500">
+            <i class="fas fa-inbox text-3xl mb-4"></i>
+            <p class="text-lg font-medium">データがありません</p>
+            <p class="text-sm">新規作成ボタンからデータを追加してください</p>
+        </div>
+    </div>
+    {% endif %}
 </div>
 EOL
 
@@ -937,69 +1036,21 @@ cat > app/templates/base_list.html << 'EOL'
     <!-- Search Form -->
     {% include "partials/_search.html" with context %}
 
-    <!-- Table View -->
-    {% include "partials/_table.html" with context %}
-
     <!-- Pagination -->
     {% include "partials/_pagination.html" with context %}
 
+    <!-- Table View -->
+    <div class="hidden lg:block">
+        {% include "partials/_table.html" with context %}
+    </div>
+
     <!-- Mobile Card View -->
     {% block mobile_card_view %}
-    <div class="mobile-card-view space-y-4">
-        <div class="glass-effect rounded-xl p-4 shadow-lg">
-            <h2 class="text-lg font-bold text-gray-800 mb-4">
-                <i class="fas fa-list mr-2"></i>データ一覧
-            </h2>
-        </div>
-        {% for item in items %}
-        <div class="glass-effect rounded-xl p-4 shadow-lg mobile-card">
-            <div class="flex justify-between items-start mb-3">
-                <div class="flex items-center">
-                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold mr-3">
-                        ID: {{ item.id }}
-                    </span>
-                </div>
-                <div class="flex space-x-2">
-                    <a href="/{{ table_name }}/{{ item.id }}" 
-                       class="bg-blue-500 text-white p-2 rounded-lg">
-                        <i class="fas fa-eye text-xs"></i>
-                    </a>
-                    <a href="/{{ table_name }}/{{ item.id }}/edit" 
-                       class="bg-yellow-500 text-white p-2 rounded-lg">
-                        <i class="fas fa-edit text-xs"></i>
-                    </a>
-                    <button hx-delete="/{{ table_name }}/{{ item.id }}" 
-                            hx-confirm="本当に削除しますか？"
-                            hx-target="closest .mobile-card"
-                            hx-swap="outerHTML swap:1s"
-                            class="bg-red-500 text-white p-2 rounded-lg">
-                        <i class="fas fa-trash text-xs"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 gap-2">
-                {% for field in fields %}
-                <div class="flex justify-between items-center py-1 border-b border-gray-100 last:border-b-0">
-                    <span class="text-sm font-medium text-gray-600">{{ field.name.replace('_', ' ').title() }}:</span>
-                    <span class="text-sm text-gray-800 truncate ml-2" style="max-width: 150px;">
-                        {{ item[field.name] if item[field.name] is not none else '—' }}
-                    </span>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endfor %}
-        {% if not items %}
-        <div class="glass-effect rounded-xl p-8 text-center">
-            <div class="text-gray-500">
-                <i class="fas fa-inbox text-3xl mb-4"></i>
-                <p class="text-lg font-medium">データがありません</p>
-                <p class="text-sm">新規作成ボタンからデータを追加してください</p>
-            </div>
-        </div>
-        {% endif %}
-    </div>
+        {% include "partials/_mobile_card.html" with context %}
     {% endblock %}
+
+    <!-- Pagination -->
+    {% include "partials/_pagination.html" with context %}
 
     <!-- Floating Action Button (Mobile) -->
     {% block mobile_fab %}

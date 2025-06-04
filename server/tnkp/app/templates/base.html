@@ -42,106 +42,6 @@
         }
     </style>
 
-
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-            body { font-family: 'Inter', sans-serif; }
-            .glass-effect {
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-            }
-            .gradient-bg {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                min-height: 100vh;
-            }
-            .card-hover {
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            .card-hover:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-            }
-            .btn-modern {
-                transition: all 0.2s ease-in-out;
-                position: relative;
-                overflow: hidden;
-            }
-            .btn-modern:before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: -100%;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-                transition: left 0.5s;
-            }
-            .btn-modern:hover:before {
-                left: 100%;
-            }
-            .fade-in {
-                animation: fadeIn 0.8s ease-out forwards;
-            }
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(20px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            .slide-in {
-                animation: slideIn 0.6s ease-out forwards;
-            }
-            @keyframes slideIn {
-                from { transform: translateX(-20px); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            .mobile-card {
-                transition: all 0.2s ease;
-            }
-            .mobile-card:active {
-                transform: scale(0.98);
-            }
-            /* Mobile specific styles */
-            @media (max-width: 768px) {
-                .mobile-hidden { display: none !important; }
-                .mobile-full { width: 100% !important; }
-                .mobile-stack { flex-direction: column !important; }
-                .mobile-text-sm { font-size: 0.875rem !important; }
-                .mobile-p-2 { padding: 0.5rem !important; }
-                .mobile-mb-4 { margin-bottom: 1rem !important; }
-            }
-            
-            /* Responsive table */
-            .responsive-table {
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
-            }
-            
-            @media (max-width: 640px) {
-                .responsive-table {
-                    display: none;
-                }
-                .mobile-card-view {
-                    display: block;
-                }
-            }
-            
-            @media (min-width: 641px) {
-                .mobile-card-view {
-                    display: none;
-                }
-            }
-            
-            /* Mobile menu */
-            .mobile-menu {
-                transform: translateX(100%);
-                transition: transform 0.3s ease-in-out;
-            }
-            .mobile-menu.open {
-                transform: translateX(0);
-            }
-        </style>
-        
     {% block head_extra %}
     {% endblock %}
 </head>
@@ -166,6 +66,75 @@
     {% block content %}
     {% endblock %}
 </div>
+
+<!-- 删除确认模态框 -->
+<div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded shadow-lg p-6 w-full max-w-sm">
+    <div class="mb-4 text-lg text-gray-800 font-semibold">本当に削除しますか？</div>
+    <div class="flex justify-end space-x-3">
+      <button class="btn btn-secondary" onclick="hideDeleteModal()">キャンセル</button>
+      <button id="delete-modal-confirm" class="btn btn-error">削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认模态框脚本 -->
+<script>
+let deleteTargetButton = null;
+
+function showDeleteModal(button) {
+  deleteTargetButton = button;
+  document.getElementById('delete-modal').classList.remove('hidden');
+}
+
+function hideDeleteModal() {
+  document.getElementById('delete-modal').classList.add('hidden');
+}
+
+// 点击确认后，手动触发 HTMX 的 DELETE 请求
+document.getElementById('delete-modal-confirm').addEventListener('click', function() {
+  if (deleteTargetButton) {
+    // 触发 htmx 请求
+    htmx.ajax('DELETE', deleteTargetButton.getAttribute('data-delete-url'), {
+      target: deleteTargetButton.getAttribute('hx-target'),
+      swap: deleteTargetButton.getAttribute('hx-swap') || 'outerHTML swap:1s'
+    });
+    hideDeleteModal();
+  }
+});
+</script>
+
+<!-- Toast 通知脚本 -->
+<!-- 监听 HTMX 请求完成事件 -->
+<!-- 如果响应头中包含 HX-Trigger，则显示 Toast 通知 -->
+<!-- 这里假设服务器端在响应中设置了 HX-Trigger: {"toast": "操作成功"} -->
+<!-- 你可以根据实际情况调整触发条件和消息内容 -->
+<!-- 例如在 FastAPI 中可以使用 Response.headers['HX-Trigger'] = json.dumps({"toast": "操作成功"}) -->
+<!-- 这样在 HTMX 请求完成后会自动触发 Toast 显示 -->
+<!-- 你可以在 FastAPI 的响应中设置 HX-Trigger 头部来触发 Toast -->
+<!-- 例如：response.headers['HX-Trigger'] = json.dumps({"toast": "操作成功"}) -->
+<!-- 这样在 HTMX 请求完成后会自动触发 Toast 显示 -->    
+<script>
+document.body.addEventListener('htmx:afterRequest', function(evt) {
+    let triggers = evt.detail.xhr.getResponseHeader('HX-Trigger');
+    if (triggers) {
+        try {
+            let data = JSON.parse(triggers);
+            if (data.toast) {
+                showToast(data.toast);
+            }
+        } catch (e) {}
+    }
+});
+
+function showToast(msg) {
+    let toast = document.createElement('div');
+    toast.className = 'fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-2 rounded shadow-lg z-50';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 2000);
+}
+</script>
 
 <!-- 脚本 -->
 {% block scripts %}
