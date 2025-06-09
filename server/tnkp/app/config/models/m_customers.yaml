@@ -26,3 +26,9 @@ model:
       required: true
       default: null
       label: 削除フラグ
+      widget_type: radio
+      choices:
+        - value: 1
+          label: "削除済み"
+        - value: 0
+          label: "有効"

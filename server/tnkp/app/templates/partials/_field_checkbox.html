@@ -1,4 +1,5 @@
 <div class="mb-4 flex items-center space-x-2">
+    <input type="hidden" name="{{ field.name }}" value="0">
     <input
         type="checkbox"
         id="{{ field.name }}"
@@ -6,6 +7,10 @@
         value="1"
         {% if item and item[field.name] %}checked{% endif %}
         class="checkbox checkbox-primary"
+        {{ "disabled" if field.readonly else "" }}
+        {{ "required" if field.required else "" }}
+        {{ "autofocus" if field.autofocus else "" }}
+        {{ "readonly" if field.readonly else "" }}
     >
     <label for="{{ field.name }}">{{ field.label }}</label>
 </div>

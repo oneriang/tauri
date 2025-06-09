@@ -41,7 +41,10 @@ class BaseCRUD:
                     query = query.filter(or_(*filters))
             total = query.count()
             items = query.offset((page - 1) * per_page).limit(per_page).all()
-            fields = [col for col in model.__table__.columns if not col.primary_key]
+
+            from app.utils.yaml_loader import get_list_fields
+            fields = get_list_fields(model.__tablename__)
+
             return templates.TemplateResponse(
                 f"{template_base}/list.html",
                 {

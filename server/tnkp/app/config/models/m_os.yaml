@@ -26,3 +26,10 @@ model:
       required: false
       default: 0
       label: 削除フラグ
+      widget_type: select
+      choices: 
+        - value: 1
+          label: "削除済み"
+        - value: 0 
+          label: "有効"
+      

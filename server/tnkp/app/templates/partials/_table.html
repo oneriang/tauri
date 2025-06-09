@@ -2,9 +2,9 @@
     <table class="table table-zebra table-pin-rows w-full">
         <thead>
         <tr>
-            <th>{{ pk_name|upper }}</th>
+            <!-- <th>{{ pk_name|upper }}</th> -->
             {% for field in fields %}
-            <th>{{ field.name.replace('_', ' ').title() }}</th>
+            <th>{{ field.label or field.name }}</th>
             {% endfor %}
             <th>操作</th>
         </tr>
@@ -12,7 +12,7 @@
         <tbody>
         {% for item in items %}
         <tr class="hover">
-            <td><span class="badge badge-info">{{ item[pk_name] }}</span></td>
+            <!-- <td><span class="badge badge-info">{{ item[pk_name] }}</span></td> -->
             {% for field in fields %}
             <td>{{ item[field.name] if item[field.name] is not none else '—' }}</td>
             {% endfor %}
@@ -40,4 +40,3 @@
         </tbody>
     </table>
 </div>
-

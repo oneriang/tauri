@@ -131,7 +131,10 @@ class BaseCRUD:
                     query = query.filter(or_(*filters))
             total = query.count()
             items = query.offset((page - 1) * per_page).limit(per_page).all()
-            fields = [col for col in model.__table__.columns if not col.primary_key]
+            
+            from app.utils.yaml_loader import get_list_fields
+            fields = get_list_fields(model.__tablename__)
+
             return templates.TemplateResponse(
                 f"{template_base}/list.html",
                 {
@@ -809,6 +812,10 @@ cat > app/templates/partials/_field_radio.html << 'EOL'
             value="{{ option.value }}"
             {% if item and item[field.name] == option.value %}checked{% endif %}
             class="radio radio-primary"
+            {{ "disabled" if field.readonly else "" }}
+            {{ "required" if field.required else "" }}
+            {{ "autofocus" if field.autofocus else "" }}
+            {{ "readonly" if field.readonly else "" }}
         >
         <label for="{{ field.name }}_{{ option.value }}">
             {{ option.label }}
@@ -821,6 +828,7 @@ EOL
 # 创建 _field_checkbox 模板
 cat > app/templates/partials/_field_checkbox.html << 'EOL'
 <div class="mb-4 flex items-center space-x-2">
+    <input type="hidden" name="{{ field.name }}" value="0">
     <input
         type="checkbox"
         id="{{ field.name }}"
@@ -828,9 +836,14 @@ cat > app/templates/partials/_field_checkbox.html << 'EOL'
         value="1"
         {% if item and item[field.name] %}checked{% endif %}
         class="checkbox checkbox-primary"
+        {{ "disabled" if field.readonly else "" }}
+        {{ "required" if field.required else "" }}
+        {{ "autofocus" if field.autofocus else "" }}
+        {{ "readonly" if field.readonly else "" }}
     >
     <label for="{{ field.name }}">{{ field.label }}</label>
 </div>
+
 EOL
 
 # 创建 _field_select 模板
@@ -910,7 +923,7 @@ cat > app/templates/partials/_table.html << 'EOL'
         <tr>
             <th>{{ pk_name|upper }}</th>
             {% for field in fields %}
-            <th>{{ field.name.replace('_', ' ').title() }}</th>
+            <th>{{ field.label or field.name }}</th>
             {% endfor %}
             <th>操作</th>
         </tr>
@@ -946,7 +959,6 @@ cat > app/templates/partials/_table.html << 'EOL'
         </tbody>
     </table>
 </div>
-
 EOL
 
 # 创建 _mobile_card 模板
@@ -1511,6 +1523,16 @@ def load_yaml_config(filename):
     config_path = CONFIG_DIR / filename
     with open(config_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
+
+def get_list_fields(table_name):
+    config = get_model_config(table_name)
+    all_fields = config["fields"]
+    fields = [
+        {"name": name, **field}
+        for name, field in all_fields.items()
+        if field.get("list_display", True)
+    ]
+    return sorted(fields, key=lambda f: f.get("order", 100))
 EOL
 
 echo " YAML 配置文件..."

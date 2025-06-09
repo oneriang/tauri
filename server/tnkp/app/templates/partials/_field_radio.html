@@ -9,6 +9,10 @@
             value="{{ option.value }}"
             {% if item and item[field.name] == option.value %}checked{% endif %}
             class="radio radio-primary"
+            {{ "disabled" if field.readonly else "" }}
+            {{ "required" if field.required else "" }}
+            {{ "autofocus" if field.autofocus else "" }}
+            {{ "readonly" if field.readonly else "" }}
         >
         <label for="{{ field.name }}_{{ option.value }}">
             {{ option.label }}

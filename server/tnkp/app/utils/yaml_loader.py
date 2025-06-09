@@ -16,3 +16,13 @@ def load_yaml_config(filename):
     config_path = CONFIG_DIR / filename
     with open(config_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
+
+def get_list_fields(table_name):
+    config = get_model_config(table_name)
+    all_fields = config["fields"]
+    fields = [
+        {"name": name, **field}
+        for name, field in all_fields.items()
+        if field.get("list_display", False) == False
+    ]
+    return sorted(fields, key=lambda f: f.get("order", 100))

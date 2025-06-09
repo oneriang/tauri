@@ -50,3 +50,5 @@ model:
       required: true
       default: null
       label: 削除フラグ
+      widget_type: checkbox
+      
