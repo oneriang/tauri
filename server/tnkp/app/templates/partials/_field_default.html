@@ -5,6 +5,7 @@
         name="{{ field.name }}"
         value="{{ item[field.name] if item and item[field.name] is not none else '' }}"
         class="input input-bordered w-full"
+        {{ field.readonly }}
         {{ "required" if not field.nullable }}
     >
 </div>

@@ -202,9 +202,15 @@ class BaseCRUD:
         @router.get("/{item_id}", response_class=HTMLResponse)
         async def read_item(request: Request, item_id: str, db: Session = Depends(get_db)):
             item = db.query(model).filter(getattr(model, pk_name) == item_id).first()
+            
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
-            fields = [col for col in model.__table__.columns if not col.primary_key]
+            
+            fields = get_fields(model)
+            
+            for f in fields:
+                f["readonly"] = "readonly"
+
             return templates.TemplateResponse(
                 f"{template_base}/detail.html",
                 {
@@ -753,16 +759,20 @@ cat > app/templates/detail.html << 'EOL'
     </h1>
     <div class="space-y-6">
         {% for field in fields %}
-        <div class="flex flex-col gap-2">
-            <label class="font-semibold text-gray-700">{{ field.name.replace('_', ' ').title() }}</label>
-            <div class="px-4 py-2 rounded bg-gray-100 text-gray-800 break-all">
-                {{ item[field.name] if item[field.name] is not none else '—' }}
-            </div>
-        </div>
+        {% set widget_template = {
+            'radio': 'partials/_field_radio.html',
+            'checkbox': 'partials/_field_checkbox.html',
+            'select': 'partials/_field_select.html',
+            'daterange': 'partials/_field_daterange.html'
+        }.get(field.widget_type, 'partials/_field_default.html') %}
+        {% include widget_template with context %}
         {% endfor %}
         <div class="flex flex-col sm:flex-row justify-between gap-4 pt-6">
             <a href="/{{ table_name }}" class="btn btn-outline btn-secondary">
                 <i class="fas fa-arrow-left mr-2"></i>戻る
+            </a>
+            <a href="/{{ table_name }}/{{ item[pk_name] }}/edit" class="btn btn-primary gap-2">
+                <i class="fas fa-edit text-xs"></i>編集
             </a>
         </div>
     </div>
@@ -780,6 +790,7 @@ cat > app/templates/partials/_field_default.html << 'EOL'
         name="{{ field.name }}"
         value="{{ item[field.name] if item and item[field.name] is not none else '' }}"
         class="input input-bordered w-full"
+        {{ field.readonly }}
         {{ "required" if not field.nullable }}
     >
 </div>
@@ -940,7 +951,7 @@ EOL
 
 # 创建 _mobile_card 模板
 cat > app/templates/partials/_mobile_card.html << 'EOL'
-<div class="mobile-card-view space-y-4">
+<div class="block lg:hidden mobile-card-view space-y-4">
     <div class="glass-effect rounded-xl p-4 shadow-lg">
         <h2 class="text-lg font-bold text-gray-800 mb-4">
             <i class="fas fa-list mr-2"></i>データ一覧
@@ -1769,7 +1780,7 @@ echo "生成启动脚本..."
 cat > run.sh << 'EOL'
 #!/bin/bash
 source venv/bin/activate
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 EOL
 
 chmod +x run.sh

@@ -112,9 +112,14 @@ class BaseCRUD:
         @router.get("/{item_id}", response_class=HTMLResponse)
         async def read_item(request: Request, item_id: str, db: Session = Depends(get_db)):
             item = db.query(model).filter(getattr(model, pk_name) == item_id).first()
+            
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
-            fields = [col for col in model.__table__.columns if not col.primary_key]
+            
+            fields = get_fields(model)
+            for f in fields:
+                f["readonly"] = "readonly"
+            
             return templates.TemplateResponse(
                 f"{template_base}/detail.html",
                 {

@@ -9,16 +9,20 @@
     </h1>
     <div class="space-y-6">
         {% for field in fields %}
-        <div class="flex flex-col gap-2">
-            <label class="font-semibold text-gray-700">{{ field.name.replace('_', ' ').title() }}</label>
-            <div class="px-4 py-2 rounded bg-gray-100 text-gray-800 break-all">
-                {{ item[field.name] if item[field.name] is not none else '—' }}
-            </div>
-        </div>
+        {% set widget_template = {
+            'radio': 'partials/_field_radio.html',
+            'checkbox': 'partials/_field_checkbox.html',
+            'select': 'partials/_field_select.html',
+            'daterange': 'partials/_field_daterange.html'
+        }.get(field.widget_type, 'partials/_field_default.html') %}
+        {% include widget_template with context %}
         {% endfor %}
         <div class="flex flex-col sm:flex-row justify-between gap-4 pt-6">
             <a href="/{{ table_name }}" class="btn btn-outline btn-secondary">
                 <i class="fas fa-arrow-left mr-2"></i>戻る
+            </a>
+            <a href="/{{ table_name }}/{{ item[pk_name] }}/edit" class="btn btn-primary gap-2">
+                <i class="fas fa-edit text-xs"></i>編集
             </a>
         </div>
     </div>
