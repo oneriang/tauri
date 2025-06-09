@@ -2,7 +2,7 @@
     <table class="table table-zebra table-pin-rows w-full">
         <thead>
         <tr>
-            <th>ID</th>
+            <th>{{ pk_name|upper }}</th>
             {% for field in fields %}
             <th>{{ field.name.replace('_', ' ').title() }}</th>
             {% endfor %}
@@ -12,23 +12,19 @@
         <tbody>
         {% for item in items %}
         <tr class="hover">
-            <td><span class="badge badge-info">{{ item.id }}</span></td>
+            <td><span class="badge badge-info">{{ item[pk_name] }}</span></td>
             {% for field in fields %}
             <td>{{ item[field.name] if item[field.name] is not none else '—' }}</td>
             {% endfor %}
             <td>
                 <div class="flex gap-2">
-                    <a href="/{{ table_name }}/{{ item.id }}" class="btn btn-info btn-sm">詳細</a>
-                    <a href="/{{ table_name }}/{{ item.id }}/edit" class="btn btn-warning btn-sm">編集</a>
-                    <button 
-                        type="button"
-                        class="btn btn-error btn-sm"
-                        data-delete-url="/{{ table_name }}/{{ item.id }}"
-                        hx-target="closest tr"
-                        hx-swap="outerHTML swap:1s"
-                        onclick="showDeleteModal(this)">
-                        削除
-                    </button>
+                    <a href="/{{ table_name }}/{{ item[pk_name] }}" class="btn btn-info btn-sm">詳細</a>
+                    <a href="/{{ table_name }}/{{ item[pk_name] }}/edit" class="btn btn-warning btn-sm">編集</a>
+                    <button hx-delete="/{{ table_name }}/{{ item[pk_name] }}"
+                            hx-confirm="本当に削除しますか？"
+                            hx-target="closest tr"
+                            hx-swap="outerHTML swap:1s"
+                            class="btn btn-error btn-sm">削除</button>
                 </div>
             </td>
         </tr>
@@ -44,3 +40,4 @@
         </tbody>
     </table>
 </div>
+

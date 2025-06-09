@@ -67,6 +67,7 @@
     {% endblock %}
 </div>
 
+
 <!-- 删除确认模态框 -->
 <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
   <div class="bg-white rounded shadow-lg p-6 w-full max-w-sm">
@@ -102,38 +103,6 @@ document.getElementById('delete-modal-confirm').addEventListener('click', functi
     hideDeleteModal();
   }
 });
-</script>
-
-<!-- Toast 通知脚本 -->
-<!-- 监听 HTMX 请求完成事件 -->
-<!-- 如果响应头中包含 HX-Trigger，则显示 Toast 通知 -->
-<!-- 这里假设服务器端在响应中设置了 HX-Trigger: {"toast": "操作成功"} -->
-<!-- 你可以根据实际情况调整触发条件和消息内容 -->
-<!-- 例如在 FastAPI 中可以使用 Response.headers['HX-Trigger'] = json.dumps({"toast": "操作成功"}) -->
-<!-- 这样在 HTMX 请求完成后会自动触发 Toast 显示 -->
-<!-- 你可以在 FastAPI 的响应中设置 HX-Trigger 头部来触发 Toast -->
-<!-- 例如：response.headers['HX-Trigger'] = json.dumps({"toast": "操作成功"}) -->
-<!-- 这样在 HTMX 请求完成后会自动触发 Toast 显示 -->    
-<script>
-document.body.addEventListener('htmx:afterRequest', function(evt) {
-    let triggers = evt.detail.xhr.getResponseHeader('HX-Trigger');
-    if (triggers) {
-        try {
-            let data = JSON.parse(triggers);
-            if (data.toast) {
-                showToast(data.toast);
-            }
-        } catch (e) {}
-    }
-});
-
-function showToast(msg) {
-    let toast = document.createElement('div');
-    toast.className = 'fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-2 rounded shadow-lg z-50';
-    toast.textContent = msg;
-    document.body.appendChild(toast);
-    setTimeout(() => { toast.remove(); }, 2000);
-}
 </script>
 
 <!-- 脚本 -->

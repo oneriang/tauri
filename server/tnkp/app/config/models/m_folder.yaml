@@ -2,6 +2,12 @@ model:
   name: MFolder
   table_name: m_folder
   fields:
+    id:
+      name: id
+      type: Integer
+      required: true
+      primary_key: true
+      label: ID
     name:
       name: name
       type: String(100)

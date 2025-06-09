@@ -1,0 +1,21 @@
+model:
+  name: VUserActivities
+  table_name: v_user_activities
+  fields:
+    userid:
+      name: userid
+      type: Integer
+      primary_key: true
+      label: ユーザーID
+    user_name:
+      name: user_name
+      type: String(100)
+      label: ユーザー名
+    work_count:
+      name: work_count
+      type: Integer
+      label: 作業数
+    last_activity:
+      name: last_activity
+      type: DateTime
+      label: 最終活動日時

@@ -1,4 +1,4 @@
-#!/root/ws/rust/tauri/server/tnkp/venv/bin/python3
+#!/root/ws/rust/tauri/server/tnkp3/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

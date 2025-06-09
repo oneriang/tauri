@@ -2,6 +2,12 @@ model:
   name: MUsers
   table_name: m_users
   fields:
+    id:
+      name: id
+      type: Integer
+      required: true
+      primary_key: true
+      label: ID
     userid:
       name: userid
       type: String(50)

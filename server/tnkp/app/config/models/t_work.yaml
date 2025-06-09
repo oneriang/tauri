@@ -2,6 +2,12 @@ model:
   name: TWork
   table_name: t_work
   fields:
+    id:
+      name: id
+      type: Integer
+      required: true
+      primary_key: true
+      label: ID
     customer_id:
       name: customer_id
       type: Integer

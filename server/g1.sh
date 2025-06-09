@@ -39,10 +39,28 @@ from sqlalchemy import Column, Integer
 
 Base = declarative_base()
 
+'''
 class BaseModel(Base):
     __abstract__ = True
     id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     
+    @classmethod
+    def get_router(cls):
+        from app.core.base_crud import BaseCRUD
+        return BaseCRUD.create_router(cls)
+'''
+
+class BaseModel(Base):
+    __abstract__ = True
+
+    @classmethod
+    def get_primary_key(cls):
+        """获取主键字段名"""
+        for col in cls.__table__.columns:
+            if col.primary_key:
+                return col.name
+        return "id"  # 兜底
+
     @classmethod
     def get_router(cls):
         from app.core.base_crud import BaseCRUD
@@ -86,7 +104,13 @@ class BaseCRUD:
     def create_router(cls, model: Type):
         router = APIRouter(prefix=f"/{model.__tablename__}", tags=[model.__tablename__])
         template_base = model.__tablename__
-        
+        pk_name = model.get_primary_key()
+
+        from app.utils.yaml_loader import get_model_config
+        def get_fields(model):
+            config = get_model_config(model.__tablename__)
+            return list(config['fields'].values())
+
         @router.get("/", response_class=HTMLResponse)
         async def read_items(
             request: Request,
@@ -107,7 +131,7 @@ class BaseCRUD:
                     query = query.filter(or_(*filters))
             total = query.count()
             items = query.offset((page - 1) * per_page).limit(per_page).all()
-            fields = [col for col in model.__table__.columns if col.name != 'id']
+            fields = [col for col in model.__table__.columns if not col.primary_key]
             return templates.TemplateResponse(
                 f"{template_base}/list.html",
                 {
@@ -119,39 +143,11 @@ class BaseCRUD:
                     "page": page,
                     "per_page": per_page,
                     "total": total,
-                    "q": q or ""
+                    "q": q or "",
+                    "pk_name": pk_name,
                 }
             )
 
-        def column_to_dict(col):
-            """将 SQLAlchemy Column 转换为包含元信息的字典"""
-            col_type = str(col.type)
-            html_type = "text"
-            
-            if "Integer" in col_type:
-                html_type = "number"
-            elif "Date" in col_type:
-                html_type = "date"
-            elif "DateTime" in col_type:
-                html_type = "datetime-local"
-            elif "Text" in col_type or col.type.python_type == str and col.type.length and col.type.length > 200:
-                html_type = "textarea"
-
-            return {
-                "name": col.name,
-                "type": col.type,
-                "nullable": col.nullable,
-                "required": not col.nullable,
-                "label": col.name.replace("_", " ").title(),
-                "html_type": html_type
-            }
-
-        from app.utils.yaml_loader import get_model_config
-
-        def get_fields(model):
-            config = get_model_config(model.__tablename__)
-            return list(config['fields'].values())
-            
         @router.get("/new", response_class=HTMLResponse)
         async def create_form(request: Request):
             fields = get_fields(model)
@@ -162,13 +158,14 @@ class BaseCRUD:
                     "item": None,
                     "fields": fields,
                     "table_name": model.__tablename__,
-                    "model_name": model.__name__
+                    "model_name": model.__name__,
+                    "pk_name": pk_name,
                 }
             )
 
         @router.get("/{item_id}/edit", response_class=HTMLResponse)
-        async def edit_form(request: Request, item_id: int, db: Session = Depends(get_db)):
-            item = db.query(model).filter(model.id == item_id).first()
+        async def edit_form(request: Request, item_id: str, db: Session = Depends(get_db)):
+            item = db.query(model).filter(getattr(model, pk_name) == item_id).first()
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
             fields = get_fields(model)
@@ -179,16 +176,21 @@ class BaseCRUD:
                     "item": item,
                     "fields": fields,
                     "table_name": model.__tablename__,
-                    "model_name": model.__name__
+                    "model_name": model.__name__,
+                    "pk_name": pk_name,
                 }
             )
-        
+
         @router.post("/", response_class=HTMLResponse)
         async def create_item(request: Request, db: Session = Depends(get_db)):
             try:
                 form_data = await request.form()
-                # 过滤掉空值和ID字段
-                item_data = {k: v for k, v in form_data.items() if v and k != 'id'}
+
+                if hasattr(model, "save_via_view"):
+                    await model.save_via_view(form_data, db)
+                    return RedirectResponse(url=f"/{model.__tablename__}", status_code=303)
+
+                item_data = {k: v for k, v in form_data.items() if v and k != pk_name}
                 item = model(**item_data)
                 db.add(item)
                 db.commit()
@@ -196,56 +198,57 @@ class BaseCRUD:
                 return RedirectResponse(url=f"/{model.__tablename__}", status_code=303)
             except Exception as e:
                 raise HTTPException(status_code=400, detail=str(e))
-        
+
         @router.get("/{item_id}", response_class=HTMLResponse)
-        async def read_item(request: Request, item_id: int, db: Session = Depends(get_db)):
-            item = db.query(model).filter(model.id == item_id).first()
+        async def read_item(request: Request, item_id: str, db: Session = Depends(get_db)):
+            item = db.query(model).filter(getattr(model, pk_name) == item_id).first()
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
-            
-            fields = get_fields(model)
+            fields = [col for col in model.__table__.columns if not col.primary_key]
             return templates.TemplateResponse(
                 f"{template_base}/detail.html",
                 {
                     "request": request,
                     "item": item,
+                    "fields": fields,
                     "table_name": model.__tablename__,
                     "model_name": model.__name__,
-                    "fields": fields
+                    "pk_name": pk_name,
                 }
             )
-        
+
         @router.post("/{item_id}", response_class=HTMLResponse)
-        async def update_item(request: Request, item_id: int, db: Session = Depends(get_db)):
+        async def update_item(request: Request, item_id: str, db: Session = Depends(get_db)):
             try:
-                item = db.query(model).filter(model.id == item_id).first()
+                item = db.query(model).filter(getattr(model, pk_name) == item_id).first()
                 if not item:
                     raise HTTPException(status_code=404, detail="Item not found")
-                
+
                 form_data = await request.form()
+
+                if hasattr(model, "save_via_view"):
+                    await model.save_via_view(form_data, db)
+                    return RedirectResponse(url=f"/{model.__tablename__}", status_code=303)
+
                 for key, value in form_data.items():
-                    if hasattr(item, key) and key != 'id':
+                    if hasattr(item, key) and key != pk_name:
                         setattr(item, key, value)
-                
                 db.commit()
                 return RedirectResponse(url=f"/{model.__tablename__}", status_code=303)
             except Exception as e:
                 raise HTTPException(status_code=400, detail=str(e))
-        
+
         @router.delete("/{item_id}")
-        async def delete_item(item_id: int, db: Session = Depends(get_db)):
-            item = db.query(model).filter(model.id == item_id).first()
+        async def delete_item(item_id: str, db: Session = Depends(get_db)):
+            item = db.query(model).filter(getattr(model, pk_name) == item_id).first()
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
-            
             db.delete(item)
             db.commit()
             return {"message": "Item deleted successfully"}
-            # 返回204 + HX-Trigger Header，HTMX前端可监听此Header弹toast
-            headers = {"HX-Trigger": '{"toast": "削除しました"}'}
-            return FastAPIResponse(status_code=status.HTTP_204_NO_CONTENT, headers=headers)
-            
+
         return router
+
 EOL
 
 echo "生成模型和路由生成脚本..."
@@ -263,6 +266,7 @@ import yaml
 TABLES = {
     "t_work": {
         "fields": [
+            {"name": "id", "type": "Integer", "required": True, "primary_key": True, "label": "ID"},
             {"name": "customer_id", "type": "Integer", "required": True, "default": None, "label": "顧客ID"},
             {"name": "slip_number", "type": "String(50)", "required": True, "default": None, "label": "伝票番号"},
             {"name": "title", "type": "String(200)", "required": True, "default": None, "label": "タイトル"},
@@ -279,6 +283,7 @@ TABLES = {
         "name": "作業サブテーブル",
         "description": "作業の詳細情報を管理",
         "fields": [
+            {"name": "id", "type": "Integer", "required": True, "primary_key": True, "label": "ID"},
             {"name": "work_id", "type": "Integer", "required": True, "default": None, "label": "作業ID"},
             {"name": "workclass_id", "type": "Integer", "required": True, "default": None, "label": "作業分類ID"},
             {"name": "urtime", "type": "DateTime", "required": False, "default": None, "label": "開始時間"},
@@ -293,21 +298,17 @@ TABLES = {
         "name": "顧客マスタ",
         "description": "顧客情報を管理",
         "fields": [
+            {"name": "id", "type": "Integer", "required": True, "primary_key": True, "label": "ID"},
             {"name": "code", "type": "String(20)", "required": True, "default": None, "label": "顧客コード"},
             {"name": "name", "type": "String(100)", "required": True, "default": None, "label": "顧客名"},
-            {
-                "name": "delflg", 
-                "type": "Integer", 
-                "required": True, 
-                "default": None, 
-                "label": "削除フラグ"
-            }
+            {"name": "delflg", "type": "Integer", "required": True, "default": None, "label": "削除フラグ"}
         ]
     },
     "m_folder": {
         "name": "フォルダマスタ",
         "description": "フォルダ情報を管理",
         "fields": [
+            {"name": "id", "type": "Integer", "required": True, "primary_key": True, "label": "ID"},
             {"name": "name", "type": "String(100)", "required": True, "default": None, "label": "フォルダ名"},
             {"name": "ip", "type": "String(50)", "required": True, "default": None, "label": "IPアドレス"},
             {"name": "path", "type": "String(200)", "required": True, "default": None, "label": "パス"},
@@ -321,32 +322,22 @@ TABLES = {
         "name": "OSマスタ",
         "description": "OS情報を管理",
         "fields": [
+            {"name": "id", "type": "Integer", "required": True, "primary_key": True, "label": "ID"},
             {"name": "name", "type": "String(50)", "required": True, "default": None, "label": "OS名"},
             {"name": "comment", "type": "String(200)", "required": True, "default": None, "label": "コメント"},
-            {
-                "name": "delflg", 
-                "type": "Integer", 
-                "required": False, 
-                "default": 0, 
-                "label": "削除フラグ"
-            }
+            {"name": "delflg", "type": "Integer", "required": False, "default": 0, "label": "削除フラグ"}
         ]
     },
     "m_users": {
         "name": "ユーザーマスタ",
         "description": "ユーザー情報を管理",
         "fields": [
+            {"name": "id", "type": "Integer", "required": True, "primary_key": True, "label": "ID"},
             {"name": "userid", "type": "String(50)", "required": True, "default": None, "label": "ユーザーID"},
             {"name": "passwd", "type": "String(100)", "required": True, "default": None, "label": "パスワード"},
             {"name": "fname", "type": "String(50)", "required": True, "default": None, "label": "名前"},
             {"name": "lname", "type": "String(50)", "required": True, "default": None, "label": "姓"},
-            {
-                "name": "permission", 
-                "type": "Integer", 
-                "required": True, 
-                "default": None, 
-                "label": "権限"
-            },
+            {"name": "permission", "type": "Integer", "required": True, "default": None, "label": "権限"},
             {"name": "facilitator", "type": "Integer", "required": True, "default": None, "label": "進行者"},
             {"name": "delflg", "type": "Integer", "required": True, "default": None, "label": "削除フラグ"}
         ]
@@ -355,6 +346,7 @@ TABLES = {
         "name": "バージョンマスタ",
         "description": "バージョン情報を管理",
         "fields": [
+            {"name": "id", "type": "Integer", "required": True, "primary_key": True, "label": "ID"},
             {"name": "name", "type": "String(50)", "required": True, "default": None, "label": "バージョン名"},
             {"name": "comment", "type": "String(200)", "required": True, "default": None, "label": "コメント"},
             {"name": "delflg", "type": "Integer", "required": False, "default": 0, "label": "削除フラグ"},
@@ -365,6 +357,7 @@ TABLES = {
         "name": "作業分類マスタ",
         "description": "作業分類情報を管理",
         "fields": [
+            {"name": "id", "type": "Integer", "required": True, "primary_key": True, "label": "ID"},
             {"name": "name", "type": "String(50)", "required": True, "default": None, "label": "分類名"},
             {"name": "comment", "type": "String(200)", "required": True, "default": None, "label": "コメント"}
         ]
@@ -373,12 +366,40 @@ TABLES = {
         "name": "ログテーブル",
         "description": "システムログを管理",
         "fields": [
+            {"name": "id", "type": "Integer", "required": True, "primary_key": True, "label": "ID"},
             {"name": "user_id", "type": "Integer", "required": False, "default": None, "label": "ユーザーID"},
             {"name": "user_name", "type": "String(50)", "required": False, "default": None, "label": "ユーザー名"},
             {"name": "folder_name", "type": "String(100)", "required": False, "default": None, "label": "フォルダ名"},
             {"name": "work_content", "type": "Text", "required": False, "default": None, "label": "作業内容"},
             {"name": "result", "type": "Text", "required": False, "default": None, "label": "結果"},
             {"name": "created", "type": "DateTime", "required": False, "default": "func.now()", "label": "作成日時"}
+        ]
+    }
+}
+
+# 在TABLES字典后添加VIEWS字典
+VIEWS = {
+    "v_work_summary": {
+        "name": "作業サマリービュー",
+        "description": "作業情報のサマリービュー",
+        "fields": [
+            {"name": "work_id", "type": "Integer", "primary_key": True, "label": "作業ID"},
+            {"name": "customer_name", "type": "String(100)", "label": "顧客名"},
+            {"name": "slip_number", "type": "String(50)", "label": "伝票番号"},
+            {"name": "title", "type": "String(200)", "label": "タイトル"},
+            {"name": "facilitator_name", "type": "String(50)", "label": "進行者"},
+            {"name": "work_count", "type": "Integer", "label": "作業数"},
+            {"name": "last_updated", "type": "DateTime", "label": "最終更新日時"}
+        ]
+    },
+    "v_user_activities": {
+        "name": "ユーザー活動ビュー",
+        "description": "ユーザーの活動状況ビュー",
+        "fields": [
+            {"name": "user_id", "type": "Integer", "primary_key": True, "label": "ユーザーID"},
+            {"name": "user_name", "type": "String(100)", "label": "ユーザー名"},
+            {"name": "work_count", "type": "Integer", "label": "作業数"},
+            {"name": "last_activity", "type": "DateTime", "label": "最終活動日時"}
         ]
     }
 }
@@ -401,8 +422,14 @@ with open(config_path, 'r', encoding='utf-8') as f:
 
 class {model_name}(BaseModel):
     __tablename__ = "{table_name}"
-    
+    __is_view__ = {is_view}
+
 {columns}
+
+    @classmethod
+    async def save_via_view(cls, form_data, db):
+        #このビューの保存は実際のテーブルに書き込みます
+        raise NotImplementedError("save_via_view is not implemented")
 
 """,
 
@@ -483,31 +510,37 @@ def generate_yaml(table_name, config):
     with open(config_dir / f"{table_name}.yaml", "w", encoding="utf-8") as f:
         yaml.dump(data, f, allow_unicode=True, sort_keys=False)
 
+
+# 修改generate函数
 def generate():
-    for table_name, config in TABLES.items():
-
+    # 生成表模型和视图模型
+    for table_name, config in {**TABLES, **VIEWS}.items():
+        is_view = table_name in VIEWS  # 判断是否是视图
+        
         generate_yaml(table_name, config)
-
+        
         model_name = ''.join([word.capitalize() for word in table_name.split('_')])
         
         # 生成字段定义
         columns = []
         for field in config["fields"]:
             column_def = f"    {field['name']} = Column({field['type']}"
-            if not field['required']:
+            
+            if field.get("primary_key"):
+                column_def += ", primary_key=True"
+    
+            if not is_view and not field.get('required', True):
                 column_def += ", nullable=True"
-            if field.get('default') is not None:
+            if not is_view and field.get('default') is not None:
                 if isinstance(field['default'], str):
                     column_def += f", default='{field['default']}'"
                 else:
                     column_def += f", default={field['default']}"
             column_def += ")"
             columns.append(column_def)
-        
-            # 添加 html_type 属性
+            
             field['html_type'] = get_field_type(field)
             
-            # 确保 widget_type 和 choices 也被传入模板
             if 'widget_type' in field:
                 field['widget_type'] = field['widget_type']
             if 'choices' in field:
@@ -516,12 +549,13 @@ def generate():
         context = {
             "table_name": table_name,
             "model_name": model_name,
+            "is_view": is_view,  # 传递给模板
             "fields": pprint.pformat(config["fields"], indent=4, width=100),
             "field_types": ", ".join(get_unique_types(config["fields"])),
             "columns": "\n".join(columns)
         }
 
-        # 生成所有 模板文件
+        # 生成所有模板文件
         for template_name, output_path in [
             ("model.py.j2", f"app/models/{table_name}.py"),
             ("router.py.j2", f"app/routers/{table_name}.py"),
@@ -539,7 +573,7 @@ def generate():
     # 生成__init__.py文件
     with open("app/models/__init__.py", "a", encoding='utf-8') as f:
         f.write("\n# Import all models\n")
-        for table_name in TABLES.keys():
+        for table_name in {**TABLES, **VIEWS}.keys():
             model_name = ''.join([word.capitalize() for word in table_name.split('_')])
             f.write(f"from .{table_name} import {model_name}\n")
     
@@ -674,13 +708,14 @@ cat > app/templates/form.html << 'EOL'
 {% block title %}
     <title>{% if item %}編集{% else %}作成{% endif %} {{ model_name }}</title>
 {% endblock %}
+
 {% block content %}
 <div class="max-w-3xl w-full mx-auto glass-effect rounded-box p-6 sm:p-8 card fade-in">
     <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-center text-gray-800">
         {% if item %}編集{% else %}新規作成{% endif %} - {{ model_name }}
     </h1>
     <form method="post"
-          action="{% if item %}/{{ table_name }}/{{ item.id }}{% else %}/{{ table_name }}{% endif %}"
+          action="{% if item %}/{{ table_name }}/{{ item[pk_name] }}{% else %}/{{ table_name }}{% endif %}"
           class="space-y-6">
         {% for field in fields %}
         {% set widget_template = {
@@ -702,6 +737,7 @@ cat > app/templates/form.html << 'EOL'
     </form>
 </div>
 {% endblock %}
+
 EOL
 
 # 创建 detail 模板
@@ -718,7 +754,7 @@ cat > app/templates/detail.html << 'EOL'
     <div class="space-y-6">
         {% for field in fields %}
         <div class="flex flex-col gap-2">
-            <label class="font-semibold text-gray-700">{{ field.verbose_name or field.name.replace('_', ' ').title() }}</label>
+            <label class="font-semibold text-gray-700">{{ field.name.replace('_', ' ').title() }}</label>
             <div class="px-4 py-2 rounded bg-gray-100 text-gray-800 break-all">
                 {{ item[field.name] if item[field.name] is not none else '—' }}
             </div>
@@ -861,7 +897,7 @@ cat > app/templates/partials/_table.html << 'EOL'
     <table class="table table-zebra table-pin-rows w-full">
         <thead>
         <tr>
-            <th>ID</th>
+            <th>{{ pk_name|upper }}</th>
             {% for field in fields %}
             <th>{{ field.name.replace('_', ' ').title() }}</th>
             {% endfor %}
@@ -871,23 +907,19 @@ cat > app/templates/partials/_table.html << 'EOL'
         <tbody>
         {% for item in items %}
         <tr class="hover">
-            <td><span class="badge badge-info">{{ item.id }}</span></td>
+            <td><span class="badge badge-info">{{ item[pk_name] }}</span></td>
             {% for field in fields %}
             <td>{{ item[field.name] if item[field.name] is not none else '—' }}</td>
             {% endfor %}
             <td>
                 <div class="flex gap-2">
-                    <a href="/{{ table_name }}/{{ item.id }}" class="btn btn-info btn-sm">詳細</a>
-                    <a href="/{{ table_name }}/{{ item.id }}/edit" class="btn btn-warning btn-sm">編集</a>
-                    <button 
-                        type="button"
-                        class="btn btn-error btn-sm"
-                        data-delete-url="/{{ table_name }}/{{ item.id }}"
-                        hx-target="closest tr"
-                        hx-swap="outerHTML swap:1s"
-                        onclick="showDeleteModal(this)">
-                        削除
-                    </button>
+                    <a href="/{{ table_name }}/{{ item[pk_name] }}" class="btn btn-info btn-sm">詳細</a>
+                    <a href="/{{ table_name }}/{{ item[pk_name] }}/edit" class="btn btn-warning btn-sm">編集</a>
+                    <button hx-delete="/{{ table_name }}/{{ item[pk_name] }}"
+                            hx-confirm="本当に削除しますか？"
+                            hx-target="closest tr"
+                            hx-swap="outerHTML swap:1s"
+                            class="btn btn-error btn-sm">削除</button>
                 </div>
             </td>
         </tr>
@@ -903,12 +935,12 @@ cat > app/templates/partials/_table.html << 'EOL'
         </tbody>
     </table>
 </div>
-EOL
 
+EOL
 
 # 创建 _mobile_card 模板
 cat > app/templates/partials/_mobile_card.html << 'EOL'
-<div class="block lg:hidden mobile-card-view space-y-4">
+<div class="mobile-card-view space-y-4">
     <div class="glass-effect rounded-xl p-4 shadow-lg">
         <h2 class="text-lg font-bold text-gray-800 mb-4">
             <i class="fas fa-list mr-2"></i>データ一覧
@@ -919,23 +951,23 @@ cat > app/templates/partials/_mobile_card.html << 'EOL'
         <div class="flex justify-between items-start mb-3">
             <div class="flex items-center">
                 <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold mr-3">
-                    ID: {{ item.id }}
+                    {{ pk_name|upper }}: {{ item[pk_name] }}
                 </span>
             </div>
             <div class="flex space-x-2">
-                <a href="/{{ table_name }}/{{ item.id }}" class="bg-blue-500 text-white p-2 rounded-lg">
+                <a href="/{{ table_name }}/{{ item[pk_name] }}" 
+                    class="bg-blue-500 text-white p-2 rounded-lg">
                     <i class="fas fa-eye text-xs"></i>
                 </a>
-                <a href="/{{ table_name }}/{{ item.id }}/edit" class="bg-yellow-500 text-white p-2 rounded-lg">
+                <a href="/{{ table_name }}/{{ item[pk_name] }}/edit" 
+                    class="bg-yellow-500 text-white p-2 rounded-lg">
                     <i class="fas fa-edit text-xs"></i>
                 </a>
-                <button 
-                    type="button"
-                    class="bg-red-500 text-white p-2 rounded-lg"
-                    data-delete-url="/{{ table_name }}/{{ item.id }}"
-                    hx-target="closest .mobile-card"
-                    hx-swap="outerHTML swap:1s"
-                    onclick="showDeleteModal(this)">
+                <button hx-delete="/{{ table_name }}/{{ item[pk_name] }}" 
+                        hx-confirm="本当に削除しますか？"
+                        hx-target="closest .mobile-card"
+                        hx-swap="outerHTML swap:1s"
+                        class="bg-red-500 text-white p-2 rounded-lg">
                     <i class="fas fa-trash text-xs"></i>
                 </button>
             </div>
@@ -1046,9 +1078,9 @@ cat > app/templates/base_list.html << 'EOL'
 
     <!-- Mobile Card View -->
     {% block mobile_card_view %}
-        {% include "partials/_mobile_card.html" with context %}
+         {% include "partials/_mobile_card.html" with context %}
     {% endblock %}
-
+        
     <!-- Pagination -->
     {% include "partials/_pagination.html" with context %}
 
@@ -1205,6 +1237,23 @@ cat > app/templates/dashboard.html << 'EOL'
     <title>{{ dashboard.title }}</title>
 {% endblock %}
 {% block content %}
+
+<!-- 快速导航卡片 -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+  {% for card in dashboard.quick_nav_view %}
+  <a href="{{ card.path }}" class="nav-card {{ card.color }} rounded-xl p-6 text-white card-hover">
+    <div class="flex items-center">
+      <div class="bg-white/20 rounded-full p-3 mr-4">
+        <i class="{{ card.icon }}"></i>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold">{{ card.name }}</h3>
+        <p class="text-sm opacity-90">管理</p>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
 
 <!-- 快速导航卡片 -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -1370,10 +1419,65 @@ def get_db():
     finally:
         db.close()
 
+def create_views():
+    """创建SQL视图"""
+    from sqlalchemy import text
+    
+    # 确保表已存在
+    create_tables()
+    
+    db = SessionLocal()
+    try:
+        # 创建作业摘要视图
+        db.execute(text("""
+        CREATE VIEW IF NOT EXISTS v_work_summary AS
+        SELECT 
+            w.id AS work_id,
+            c.name AS customer_name,
+            w.slip_number,
+            w.title,
+            u.fname || ' ' || u.lname AS facilitator_name,
+            COUNT(ws.id) AS work_count,
+            MAX(ws.mtime) AS last_updated
+        FROM t_work w
+        LEFT JOIN m_customers c ON w.customer_id = c.id
+        LEFT JOIN m_users u ON w.facilitator_id = u.id
+        LEFT JOIN t_work_sub ws ON ws.work_id = w.id
+        GROUP BY w.id, c.name, w.slip_number, w.title, u.fname, u.lname
+        """))
+        
+        # 创建用户活动视图
+        db.execute(text("""
+        CREATE VIEW IF NOT EXISTS v_user_activities AS
+        SELECT 
+            u.id AS user_id,
+            u.fname || ' ' || u.lname AS user_name,
+            COUNT(DISTINCT w.id) AS work_count,
+            MAX(l.created) AS last_activity
+        FROM m_users u
+        LEFT JOIN t_work w ON w.facilitator_id = u.id
+        LEFT JOIN t_logs l ON l.user_id = u.id
+        GROUP BY u.id, u.fname, u.lname
+        """))
+        
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating views: {e}")
+    finally:
+        db.close()
+
 # 创建 所有表
 def create_tables():
     from app.core.base_model import Base
-    Base.metadata.create_all(bind=engine)
+    
+    tables_to_create = [
+        table for name, table in Base.metadata.tables.items()
+        if name.startswith("v_") == False
+    ]
+    print("🛠️ Creating tables:", [t.name for t in tables_to_create])
+
+    Base.metadata.create_all(bind=engine, tables=tables_to_create)
 EOL
 
 echo "YAML 加载器工具模块..."
@@ -1402,6 +1506,17 @@ echo " YAML 配置文件..."
 cat > app/config/models/dashboard.yaml << 'EOL'
 dashboard:
   title: "ダッシュボード"
+
+  quick_nav_view:
+    - name: "ユーザー活動ビュー"
+      path: "/v_user_activities"
+      icon: "fas fa-users"
+      color: "bg-gradient-to-r from-blue-500 to-blue-600"
+    - name: "作業サマリービュー"
+      path: "/v_work_summary"
+      icon: "fas fa-tasks"
+      color: "bg-gradient-to-r from-green-500 to-green-600"
+
   quick_nav:
     - name: "ユーザー管理"
       path: "/m_users"
@@ -1481,7 +1596,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
 import os
 from dotenv import load_dotenv
-from app.models import create_tables, get_db
+from app.models import create_tables, create_views, get_db
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 from app.models.m_users import MUsers
@@ -1507,6 +1622,8 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # 创建 数据库表
 create_tables()
+
+create_views()
 
 # 自动导入所有路由
 def include_routers():

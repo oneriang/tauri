@@ -2,6 +2,12 @@ model:
   name: TLogs
   table_name: t_logs
   fields:
+    id:
+      name: id
+      type: Integer
+      required: true
+      primary_key: true
+      label: ID
     user_id:
       name: user_id
       type: Integer

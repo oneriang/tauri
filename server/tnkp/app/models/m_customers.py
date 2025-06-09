@@ -14,8 +14,15 @@ with open(config_path, 'r', encoding='utf-8') as f:
 
 class MCustomers(BaseModel):
     __tablename__ = "m_customers"
-    
+    __is_view__ = False
+
+    id = Column(Integer, primary_key=True)
     code = Column(String(20))
     name = Column(String(100))
     delflg = Column(Integer)
+
+@classmethod
+async def save_via_view(cls, form_data, db):
+    #このビューの保存は実際のテーブルに書き込みます
+    raise NotImplementedError("save_via_view is not implemented")
 

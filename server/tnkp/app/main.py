@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
 import os
 from dotenv import load_dotenv
-from app.models import create_tables, get_db
+from app.models import create_tables, create_views, get_db
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 from app.models.m_users import MUsers
@@ -29,6 +29,8 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # 创建 数据库表
 create_tables()
+
+create_views()
 
 # 自动导入所有路由
 def include_routers():

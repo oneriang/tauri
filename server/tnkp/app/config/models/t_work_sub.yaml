@@ -2,6 +2,12 @@ model:
   name: TWorkSub
   table_name: t_work_sub
   fields:
+    id:
+      name: id
+      type: Integer
+      required: true
+      primary_key: true
+      label: ID
     work_id:
       name: work_id
       type: Integer

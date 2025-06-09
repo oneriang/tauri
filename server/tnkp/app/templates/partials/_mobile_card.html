@@ -1,4 +1,4 @@
-<div class="block lg:hidden mobile-card-view space-y-4">
+<div class="mobile-card-view space-y-4">
     <div class="glass-effect rounded-xl p-4 shadow-lg">
         <h2 class="text-lg font-bold text-gray-800 mb-4">
             <i class="fas fa-list mr-2"></i>データ一覧
@@ -9,23 +9,23 @@
         <div class="flex justify-between items-start mb-3">
             <div class="flex items-center">
                 <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold mr-3">
-                    ID: {{ item.id }}
+                    {{ pk_name|upper }}: {{ item[pk_name] }}
                 </span>
             </div>
             <div class="flex space-x-2">
-                <a href="/{{ table_name }}/{{ item.id }}" class="bg-blue-500 text-white p-2 rounded-lg">
+                <a href="/{{ table_name }}/{{ item[pk_name] }}" 
+                    class="bg-blue-500 text-white p-2 rounded-lg">
                     <i class="fas fa-eye text-xs"></i>
                 </a>
-                <a href="/{{ table_name }}/{{ item.id }}/edit" class="bg-yellow-500 text-white p-2 rounded-lg">
+                <a href="/{{ table_name }}/{{ item[pk_name] }}/edit" 
+                    class="bg-yellow-500 text-white p-2 rounded-lg">
                     <i class="fas fa-edit text-xs"></i>
                 </a>
-                <button 
-                    type="button"
-                    class="bg-red-500 text-white p-2 rounded-lg"
-                    data-delete-url="/{{ table_name }}/{{ item.id }}"
-                    hx-target="closest .mobile-card"
-                    hx-swap="outerHTML swap:1s"
-                    onclick="showDeleteModal(this)">
+                <button hx-delete="/{{ table_name }}/{{ item[pk_name] }}" 
+                        hx-confirm="本当に削除しますか？"
+                        hx-target="closest .mobile-card"
+                        hx-swap="outerHTML swap:1s"
+                        class="bg-red-500 text-white p-2 rounded-lg">
                     <i class="fas fa-trash text-xs"></i>
                 </button>
             </div>

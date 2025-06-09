@@ -1,0 +1,33 @@
+model:
+  name: VWorkSummary
+  table_name: v_work_summary
+  fields:
+    work_id:
+      name: work_id
+      type: Integer
+      primary_key: true
+      label: 作業ID
+    customer_name:
+      name: customer_name
+      type: String(100)
+      label: 顧客名
+    slip_number:
+      name: slip_number
+      type: String(50)
+      label: 伝票番号
+    title:
+      name: title
+      type: String(200)
+      label: タイトル
+    facilitator_name:
+      name: facilitator_name
+      type: String(50)
+      label: 進行者
+    work_count:
+      name: work_count
+      type: Integer
+      label: 作業数
+    last_updated:
+      name: last_updated
+      type: DateTime
+      label: 最終更新日時

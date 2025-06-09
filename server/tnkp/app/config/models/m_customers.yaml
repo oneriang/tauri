@@ -2,6 +2,12 @@ model:
   name: MCustomers
   table_name: m_customers
   fields:
+    id:
+      name: id
+      type: Integer
+      required: true
+      primary_key: true
+      label: ID
     code:
       name: code
       type: String(20)

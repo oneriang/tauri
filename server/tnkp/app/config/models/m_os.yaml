@@ -2,6 +2,12 @@ model:
   name: MOs
   table_name: m_os
   fields:
+    id:
+      name: id
+      type: Integer
+      required: true
+      primary_key: true
+      label: ID
     name:
       name: name
       type: String(50)
