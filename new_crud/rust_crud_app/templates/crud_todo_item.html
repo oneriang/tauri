@@ -1,0 +1,35 @@
+<div class="list-group-item d-flex justify-content-between align-items-center" 
+     id="todo-{{ todo.base.id }}">
+    <div class="d-flex align-items-center">
+        <form hx-put="/todos/{{ todo.base.id }}" 
+              hx-target="#todo-{{ todo.base.id }}" 
+              hx-swap="outerHTML">
+            <input type="hidden" name="completed" value="{{ !todo.completed }}">
+            <button type="submit" class="btn btn-sm {% if todo.completed %}btn-outline-success{% else %}btn-outline-secondary{% endif %} me-2">
+                {% if todo.completed %}
+                    <i class="bi bi-check-square"></i>
+                {% else %}
+                    <i class="bi bi-square"></i>
+                {% endif %}
+            </button>
+        </form>
+        <span class="{% if todo.completed %}text-decoration-line-through{% endif %}">
+            {{ todo.title }}
+        </span>
+    </div>
+    <div class="d-flex">
+        <button class="btn btn-sm btn-outline-primary me-2"
+                hx-get="/todos/{{ todo.base.id }}/edit"
+                hx-target="#todo-{{ todo.base.id }}"
+                hx-swap="outerHTML">
+            Edit
+        </button>
+        <form hx-delete="/todos/{{ todo.base.id }}" 
+              hx-target="#todoList" 
+              hx-swap="innerHTML">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+                Delete
+            </button>
+        </form>
+    </div>
+</div>

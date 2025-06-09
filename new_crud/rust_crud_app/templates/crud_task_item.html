@@ -1,0 +1,31 @@
+<div class="list-group-item" id="task-{{ task.base.id }}">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h5>{{ task.name }}</h5>
+            <p class="mb-1">{{ task.description }}</p>
+            <span class="badge bg-{% match task.status.as_str() %}
+                {% when "pending" %}warning
+                {% when "in_progress" %}info
+                {% when "completed" %}success
+                {% else %}secondary
+            {% endmatch %}">
+                {{ task.status }}
+            </span>
+        </div>
+        <div class="d-flex">
+            <button class="btn btn-sm btn-outline-primary me-2"
+                    hx-get="/tasks/{{ task.base.id }}/edit"
+                    hx-target="#task-{{ task.base.id }}"
+                    hx-swap="outerHTML">
+                Edit
+            </button>
+            <form hx-delete="/tasks/{{ task.base.id }}" 
+                  hx-target="#taskList" 
+                  hx-swap="innerHTML">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    Delete
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
