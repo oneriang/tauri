@@ -2,83 +2,84 @@
 {% block title %}
     <title>{{ dashboard.title }}</title>
 {% endblock %}
+
 {% block content %}
 
-<!-- 快速导航卡片 -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-  {% for card in dashboard.quick_nav_view %}
-  <a href="{{ card.path }}" class="nav-card {{ card.color }} rounded-xl p-6 text-white card-hover">
-    <div class="flex items-center">
-      <div class="bg-white/20 rounded-full p-3 mr-4">
-        <i class="{{ card.icon }}"></i>
+  <!-- 快速导航卡片 -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    {% for card in dashboard.quick_nav_admin %}
+    <a href="{{ card.path }}" class="nav-card {{ card.color }} rounded-xl p-6 text-white card-hover">
+      <div class="flex items-center">
+        <div class="bg-white/20 rounded-full p-3 mr-4">
+          <i class="{{ card.icon }}"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold">{{ card.name }}</h3>
+          <p class="text-sm opacity-90">管理</p>
+        </div>
       </div>
-      <div>
-        <h3 class="text-lg font-bold">{{ card.name }}</h3>
-        <p class="text-sm opacity-90">管理</p>
-      </div>
-    </div>
-  </a>
-  {% endfor %}
-</div>
-
-<!-- 快速导航卡片 -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-  {% for card in dashboard.quick_nav %}
-  <a href="{{ card.path }}" class="nav-card {{ card.color }} rounded-xl p-6 text-white card-hover">
-    <div class="flex items-center">
-      <div class="bg-white/20 rounded-full p-3 mr-4">
-        <i class="{{ card.icon }}"></i>
-      </div>
-      <div>
-        <h3 class="text-lg font-bold">{{ card.name }}</h3>
-        <p class="text-sm opacity-90">管理</p>
-      </div>
-    </div>
-  </a>
-  {% endfor %}
-</div>
-
-<!-- 概览卡片 -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-  {% for card in dashboard.stats_cards %}
-  <div class="glass-effect rounded-xl p-6 card-hover fade-in">
-    <div class="flex items-center">
-      <div class="{{ card.color }} rounded-full p-3 mr-4 text-white">
-        <i class="{{ card.icon }}"></i>
-      </div>
-      <div>
-        <p class="text-gray-600">{{ card.label }}</p>
-        <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/{{ card.value_key }}" hx-trigger="load">
-          <i class="fas fa-spinner fa-spin"></i>
-        </h3>
-      </div>
-    </div>
+    </a>
+    {% endfor %}
   </div>
-  {% endfor %}
-</div>
 
-<!-- 图表区域 -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-  {% for chart in dashboard.charts %}
+  <!-- 快速导航卡片 -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    {% for card in dashboard.quick_nav_view %}
+    <a href="{{ card.path }}" class="nav-card {{ card.color }} rounded-xl p-6 text-white card-hover">
+      <div class="flex items-center">
+        <div class="bg-white/20 rounded-full p-3 mr-4">
+          <i class="{{ card.icon }}"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold">{{ card.name }}</h3>
+          <p class="text-sm opacity-90">管理</p>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- 概览卡片 -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    {% for card in dashboard.stats_cards %}
+    <div class="glass-effect rounded-xl p-6 card-hover fade-in">
+      <div class="flex items-center">
+        <div class="{{ card.color }} rounded-full p-3 mr-4 text-white">
+          <i class="{{ card.icon }}"></i>
+        </div>
+        <div>
+          <p class="text-gray-600">{{ card.label }}</p>
+          <h3 class="text-2xl font-bold text-gray-800" hx-get="/api/stats/{{ card.value_key }}" hx-trigger="load">
+            <i class="fas fa-spinner fa-spin"></i>
+          </h3>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- 图表区域 -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    {% for chart in dashboard.charts %}
+    <div class="glass-effect rounded-xl p-6 card-hover fade-in">
+      <h2 class="text-lg font-bold text-gray-800 mb-4">
+        <i class="{{ chart.icon }}"></i> {{ chart.title }}
+      </h2>
+      <canvas id="{{ chart.chart_id }}"></canvas>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- 最近的活动 -->
   <div class="glass-effect rounded-xl p-6 card-hover fade-in">
     <h2 class="text-lg font-bold text-gray-800 mb-4">
-      <i class="{{ chart.icon }}"></i> {{ chart.title }}
+      <i class="fas fa-history"></i> {{ dashboard.recent_activities.title }}
     </h2>
-    <canvas id="{{ chart.chart_id }}"></canvas>
-  </div>
-  {% endfor %}
-</div>
-
-<!-- 最近的活动 -->
-<div class="glass-effect rounded-xl p-6 card-hover fade-in">
-  <h2 class="text-lg font-bold text-gray-800 mb-4">
-    <i class="fas fa-history"></i> {{ dashboard.recent_activities.title }}
-  </h2>
-  <div hx-get="{{ dashboard.recent_activities.api_url }}" hx-trigger="load">
-    <div class="flex justify-center py-8">
-      <i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
+    <div hx-get="{{ dashboard.recent_activities.api_url }}" hx-trigger="load">
+      <div class="flex justify-center py-8">
+        <i class="fas fa-spinner fa-spin text-2xl text-gray-500"></i>
+      </div>
     </div>
   </div>
-</div>
 
 {% endblock %}

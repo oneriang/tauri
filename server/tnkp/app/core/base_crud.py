@@ -10,11 +10,19 @@ from app.core.auth import get_current_user
 templates = Jinja2Templates(directory="app/templates")
 
 class BaseCRUD:
+
     @classmethod
     def create_router(cls, model: Type):
         router = APIRouter(prefix=f"/{model.__tablename__}", tags=[model.__tablename__])
         template_base = model.__tablename__
         pk_name = model.get_primary_key()
+
+        def build_breadcrumbs(model, current_label, icon, tail=False):
+            return [
+                {"title": "Home", "href": "/", "icon": "fas fa-home"},
+                {"title": model.__tablename__, "href": f"/{model.__tablename__}", "icon": "fas fa-table"},
+                {"title": current_label, "icon": icon} if tail else None
+            ]
 
         from app.utils.yaml_loader import get_model_config
         def get_fields(model):
@@ -58,12 +66,14 @@ class BaseCRUD:
                     "total": total,
                     "q": q or "",
                     "pk_name": pk_name,
+                    "breadcrumbs": build_breadcrumbs(model, "一覧", "fas fa-list", True)
                 }
             )
 
         @router.get("/new", response_class=HTMLResponse)
         async def create_form(request: Request):
             fields = get_fields(model)
+
             return templates.TemplateResponse(
                 f"{template_base}/form.html",
                 {
@@ -73,6 +83,7 @@ class BaseCRUD:
                     "table_name": model.__tablename__,
                     "model_name": model.__name__,
                     "pk_name": pk_name,
+                    "breadcrumbs": build_breadcrumbs(model, "新規作成", "fas fa-plus", True)
                 }
             )
 
@@ -82,6 +93,7 @@ class BaseCRUD:
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
             fields = get_fields(model)
+
             return templates.TemplateResponse(
                 f"{template_base}/form.html",
                 {
@@ -91,6 +103,7 @@ class BaseCRUD:
                     "table_name": model.__tablename__,
                     "model_name": model.__name__,
                     "pk_name": pk_name,
+                    "breadcrumbs": build_breadcrumbs(model, "編集", "fas fa-edit", True)
                 }
             )
 
@@ -132,6 +145,7 @@ class BaseCRUD:
                     "table_name": model.__tablename__,
                     "model_name": model.__name__,
                     "pk_name": pk_name,
+                    "breadcrumbs": build_breadcrumbs(model, "詳細", "fas fa-eye", True)
                 }
             )
 

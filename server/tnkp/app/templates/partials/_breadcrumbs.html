@@ -1,0 +1,33 @@
+{% set default_icon_map = {
+    "home": "fas fa-home",
+    "list": "fas fa-table",
+    "detail": "fas fa-eye",
+    "edit": "fas fa-edit",
+    "new": "fas fa-plus",
+} %}
+
+{% if breadcrumbs %}
+<nav class="text-sm breadcrumbs mb-4 fade-in">
+  <ul>
+    {% for crumb in breadcrumbs %}
+    <li>
+      {% if crumb.href %}
+        <a href="{{ crumb.href }}">
+          {% if crumb.icon %}
+            <i class="{{ crumb.icon }} mr-1"></i>
+          {% endif %}
+          {{ crumb.title }}
+        </a>
+      {% else %}
+        <span class="text-gray-500">
+          {% if crumb.icon %}
+            <i class="{{ crumb.icon }} mr-1"></i>
+          {% endif %}
+          {{ crumb.title }}
+        </span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</nav>
+{% endif %}

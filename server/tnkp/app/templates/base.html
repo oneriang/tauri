@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% block title %}
-        <title>FastAPI CRUD アプリ</title>
+        <title>TNKP</title>
     {% endblock %}
     <!-- DaisyUI + Tailwind -->
     <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css"  rel="stylesheet" type="text/css" />
@@ -50,19 +50,21 @@
 <nav class="navbar bg-base-100 sticky top-0 z-50 glass-effect">
   <div class="flex-1">
     <a href="/" class="btn btn-ghost normal-case text-xl">
-        <i class="fas fa-chart-line mr-2"></i>ダッシュボード
+        <i class="fas fa-chart-line mr-2"></i>TNKP
     </a>
   </div>
   <div class="flex-none gap-2">
-    <button onclick="I18N.setLanguage('ja')">日本語</button>
+    <!-- <button onclick="I18N.setLanguage('ja')">日本語</button>
     <span>|</span>
-    <button onclick="I18N.setLanguage('en')">English</button>
+    <button onclick="I18N.setLanguage('en')">English</button> -->
     <a href="/logout" class="btn btn-square btn-ghost"><i class="fas fa-sign-out-alt"></i></a>
   </div>
 </nav>
 
 <!-- 页面主体内容 -->
 <div class="container mx-auto px-4 py-6">
+    {% include "partials/_breadcrumbs.html" with context %}
+
     {% block content %}
     {% endblock %}
 </div>

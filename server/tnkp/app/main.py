@@ -49,6 +49,12 @@ def include_routers():
 
 include_routers()
 
+def build_breadcrumbs(current_label, icon, tail=False):
+    return [
+        {"title": "Home", "href": "/", "icon": "fas fa-home"},
+        {"title": current_label, "icon": icon} if tail else None
+    ]
+    
 # @app.get("/")
 # async def root():
 #     return RedirectResponse(url="/docs")
@@ -73,10 +79,29 @@ async def root(request: Request, db: Session = Depends(get_db)):
     # 合并数据
     context = {
         "request": request,
-        "dashboard": dashboard_config["dashboard"]
+        "dashboard": dashboard_config["dashboard"],
+        "breadcrumbs": build_breadcrumbs("一覧", "fas fa-list", True)
     }
 
     return templates.TemplateResponse("dashboard.html", context)
+
+@app.get("/master")
+async def root(request: Request, db: Session = Depends(get_db)):
+    # 获取用户信息
+    if not request.session.get("user_id"):
+        return RedirectResponse(url="/login")
+
+    # 加载仪表盘配置
+    master_config = load_yaml_config("master.yaml")
+
+    # 合并数据
+    context = {
+        "request": request,
+        "master": master_config["master"],
+        "breadcrumbs": build_breadcrumbs("マスター", "fas fa-list", True)
+    }
+
+    return templates.TemplateResponse("master.html", context)
 
 # 仪表盘API
 @app.get("/api/stats/users")
