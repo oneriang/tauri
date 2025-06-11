@@ -90,7 +90,10 @@ class BaseCRUD:
             )
 
         @router.get("/new", response_class=HTMLResponse)
-        async def create_form(request: Request):
+        async def create_form(
+            request: Request,
+            current_user=Depends(get_current_user)
+        ):
             fields = get_fields(model)
 
             return templates.TemplateResponse(
@@ -108,7 +111,12 @@ class BaseCRUD:
             )
 
         @router.get("/{item_id}/edit", response_class=HTMLResponse)
-        async def edit_form(request: Request, item_id: str, db: Session = Depends(get_db)):
+        async def edit_form(
+            request: Request, 
+            item_id: str, 
+            db: Session = Depends(get_db),
+            current_user=Depends(get_current_user)
+        ):
             item = db.query(model).filter(getattr(model, pk_name) == item_id).first()
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")
@@ -129,7 +137,11 @@ class BaseCRUD:
             )
 
         @router.post("/", response_class=HTMLResponse)
-        async def create_item(request: Request, db: Session = Depends(get_db)):
+        async def create_item(
+            request: Request, 
+            db: Session = Depends(get_db),
+            current_user=Depends(get_current_user)
+        ):
             try:
                 form_data = await request.form()
 
@@ -147,7 +159,12 @@ class BaseCRUD:
                 raise HTTPException(status_code=400, detail=str(e))
 
         @router.get("/{item_id}", response_class=HTMLResponse)
-        async def read_item(request: Request, item_id: str, db: Session = Depends(get_db)):
+        async def read_item(
+            request: Request, 
+            item_id: str, 
+            db: Session = Depends(get_db),
+            current_user=Depends(get_current_user)
+        ):
             item = db.query(model).filter(getattr(model, pk_name) == item_id).first()
             
             if not item:
@@ -172,7 +189,12 @@ class BaseCRUD:
             )
 
         @router.post("/{item_id}", response_class=HTMLResponse)
-        async def update_item(request: Request, item_id: str, db: Session = Depends(get_db)):
+        async def update_item(
+            request: Request, 
+            item_id: str, 
+            db: Session = Depends(get_db),
+            current_user=Depends(get_current_user)
+        ):
             try:
                 item = db.query(model).filter(getattr(model, pk_name) == item_id).first()
                 if not item:
@@ -194,7 +216,11 @@ class BaseCRUD:
                 raise HTTPException(status_code=400, detail=str(e))
 
         @router.delete("/{item_id}")
-        async def delete_item(item_id: str, db: Session = Depends(get_db)):
+        async def delete_item(
+            item_id: str, 
+            db: Session = Depends(get_db),
+            current_user=Depends(get_current_user)
+        ):
             item = db.query(model).filter(getattr(model, pk_name) == item_id).first()
             if not item:
                 raise HTTPException(status_code=404, detail="Item not found")

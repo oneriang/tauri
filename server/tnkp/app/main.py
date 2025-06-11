@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, Form, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.exceptions import HTTPException
 import os
 from dotenv import load_dotenv
 from app.models import create_tables, create_views, get_db
@@ -56,6 +57,10 @@ def build_breadcrumbs(current_label, icon, tail=False):
     ]
 
 from app.utils.yaml_loader import load_yaml_config
+
+@app.exception_handler(401)
+async def redirect_to_login(request: Request, exc: HTTPException):
+    return RedirectResponse(url="/login")  # 
 
 @app.get("/")
 async def dashboard(request: Request, db: Session = Depends(get_db)):
