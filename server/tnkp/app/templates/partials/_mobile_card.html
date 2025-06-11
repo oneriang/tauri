@@ -4,6 +4,11 @@
             <i class="fas fa-list mr-2"></i>データ一覧
         </h2>
     </div>
+    {% if model.__categoryname__ %}
+        {% set url = "/" + model.__categoryname__ +  "/" + table_name %}
+    {% else %}
+        {% set url = "/" + table_name %}
+    {% endif %}
     {% for item in items %}
     <div class="glass-effect rounded-xl p-4 shadow-lg mobile-card">
         <div class="flex justify-between items-start mb-3">
@@ -13,15 +18,15 @@
                 </span>
             </div>
             <div class="flex space-x-2">
-                <a href="/{{ table_name }}/{{ item[pk_name] }}" 
+                <a href="{{ url }}/{{ item[pk_name] }}" 
                     class="bg-blue-500 text-white p-2 rounded-lg">
                     <i class="fas fa-eye text-xs"></i>
                 </a>
-                <a href="/{{ table_name }}/{{ item[pk_name] }}/edit" 
+                <a href="{{ url }}/{{ item[pk_name] }}/edit" 
                     class="bg-yellow-500 text-white p-2 rounded-lg">
                     <i class="fas fa-edit text-xs"></i>
                 </a>
-                <button hx-delete="/{{ table_name }}/{{ item[pk_name] }}" 
+                <button hx-delete="{{ url }}/{{ item[pk_name] }}" 
                         hx-confirm="本当に削除しますか？"
                         hx-target="closest .mobile-card"
                         hx-swap="outerHTML swap:1s"

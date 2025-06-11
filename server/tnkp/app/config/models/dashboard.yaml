@@ -6,15 +6,9 @@ dashboard:
       path: "/master"
       icon: "fas fa-database"
       color: "bg-gradient-to-r from-blue-500 to-blue-600"
-
-  quick_nav_view:
-    - name: "ユーザー活動ビュー"
-      path: "/v_user_activities"
-      icon: "fas fa-users"
-      color: "bg-gradient-to-r from-blue-500 to-blue-600"
-    - name: "作業サマリービュー"
-      path: "/v_work_summary"
-      icon: "fas fa-tasks"
+    - name: "ビュー"
+      path: "/view"
+      icon: "fas fa-database"
       color: "bg-gradient-to-r from-green-500 to-green-600"
 
   stats_cards:

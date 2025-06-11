@@ -54,21 +54,11 @@ def build_breadcrumbs(current_label, icon, tail=False):
         {"title": "Home", "href": "/", "icon": "fas fa-home"},
         {"title": current_label, "icon": icon} if tail else None
     ]
-    
-# @app.get("/")
-# async def root():
-#     return RedirectResponse(url="/docs")
 
-# @app.get("/")
-# async def root(request: Request):
-#     # 检查用户是否登录
-#     if not request.session.get("user_id"):
-#         return RedirectResponse(url="/login")
-#     return templates.TemplateResponse("dashboard.html", {"request": request})
 from app.utils.yaml_loader import load_yaml_config
 
 @app.get("/")
-async def root(request: Request, db: Session = Depends(get_db)):
+async def dashboard(request: Request, db: Session = Depends(get_db)):
     # 获取用户信息
     if not request.session.get("user_id"):
         return RedirectResponse(url="/login")
@@ -86,7 +76,7 @@ async def root(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("dashboard.html", context)
 
 @app.get("/master")
-async def root(request: Request, db: Session = Depends(get_db)):
+async def master(request: Request, db: Session = Depends(get_db)):
     # 获取用户信息
     if not request.session.get("user_id"):
         return RedirectResponse(url="/login")
@@ -102,6 +92,24 @@ async def root(request: Request, db: Session = Depends(get_db)):
     }
 
     return templates.TemplateResponse("master.html", context)
+
+@app.get("/view")
+async def view(request: Request, db: Session = Depends(get_db)):
+    # 获取用户信息
+    if not request.session.get("user_id"):
+        return RedirectResponse(url="/login")
+
+    # 加载仪表盘配置
+    view_config = load_yaml_config("view.yaml")
+
+    # 合并数据
+    context = {
+        "request": request,
+        "view": view_config["view"],
+        "breadcrumbs": build_breadcrumbs("ビュー", "fas fa-list", True)
+    }
+
+    return templates.TemplateResponse("view.html", context)
 
 # 仪表盘API
 @app.get("/api/stats/users")

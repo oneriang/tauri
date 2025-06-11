@@ -14,6 +14,7 @@ with open(config_path, 'r', encoding='utf-8') as f:
 
 class MOs(BaseModel):
     __tablename__ = "m_os"
+    __categoryname__ = "master"
     __is_view__ = False
 
     id = Column(Integer, primary_key=True)

@@ -1,4 +1,9 @@
 <div class="slide-in overflow-x-auto">
+    {% if model.__categoryname__ %}
+        {% set url = "/" + model.__categoryname__ +  "/" + table_name %}
+    {% else %}
+        {% set url = "/" + table_name %}
+    {% endif %}
     <table class="table table-zebra table-pin-rows w-full">
         <thead>
         <tr>
@@ -6,7 +11,7 @@
             {% for field in fields %}
             <th>{{ field.label or field.name }}</th>
             {% endfor %}
-            <th>操作</th>
+            <th>操作 {{ model.__tablename__ }} </th>
         </tr>
         </thead>
         <tbody>
@@ -18,9 +23,9 @@
             {% endfor %}
             <td>
                 <div class="flex gap-2">
-                    <a href="/{{ table_name }}/{{ item[pk_name] }}" class="btn btn-info btn-sm">詳細</a>
-                    <a href="/{{ table_name }}/{{ item[pk_name] }}/edit" class="btn btn-warning btn-sm">編集</a>
-                    <button hx-delete="/{{ table_name }}/{{ item[pk_name] }}"
+                    <a href="{{ url }}/{{ item[pk_name] }}" class="btn btn-info btn-sm">詳細</a>
+                    <a href="{{ url }}/{{ item[pk_name] }}/edit" class="btn btn-warning btn-sm">編集</a>
+                    <button hx-delete="{{ url }}/{{ item[pk_name] }}"
                             hx-confirm="本当に削除しますか？"
                             hx-target="closest tr"
                             hx-swap="outerHTML swap:1s"

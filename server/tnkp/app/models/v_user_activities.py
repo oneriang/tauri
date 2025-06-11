@@ -15,6 +15,7 @@ with open(config_path, 'r', encoding='utf-8') as f:
 
 class VUserActivities(BaseModel):
     __tablename__ = "v_user_activities"
+    __categoryname__ = "view"
     __is_view__ = True
 
     user_id = Column(Integer, primary_key=True)

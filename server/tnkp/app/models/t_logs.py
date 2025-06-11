@@ -14,6 +14,7 @@ with open(config_path, 'r', encoding='utf-8') as f:
 
 class TLogs(BaseModel):
     __tablename__ = "t_logs"
+    __categoryname__ = "master"
     __is_view__ = False
 
     id = Column(Integer, primary_key=True)

@@ -5,12 +5,16 @@
 
 {% block content %}
 <div class="w-full mx-auto glass-effect rounded-box p-6 sm:p-8 card fade-in">
-   
+    {% if model.__categoryname__ %}
+        {% set url = "/" + model.__categoryname__ +  "/" + table_name %}
+    {% else %}
+        {% set url = "/" + table_name %}
+    {% endif %}
     <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-center text-gray-800">
         {% if item %}編集{% else %}新規作成{% endif %} - {{ model_name }}
     </h1>
     <form method="post"
-          action="{% if item %}/{{ table_name }}/{{ item[pk_name] }}{% else %}/{{ table_name }}{% endif %}"
+          action="{% if item %}{{ url }}/{{ item[pk_name] }}{% else %}{{ url }}{% endif %}"
           class="space-y-6">
         {% for field in fields %}
         {% set widget_template = {
@@ -22,7 +26,7 @@
         {% include widget_template with context %}
         {% endfor %}
         <div class="flex flex-col sm:flex-row justify-between gap-4 pt-6">
-            <a href="/{{ table_name }}" class="btn btn-outline btn-secondary">
+            <a href="{{ url }}" class="btn btn-outline btn-secondary">
                 <i class="fas fa-arrow-left mr-2"></i>戻る
             </a>
             <button type="submit" class="btn btn-primary gap-2">

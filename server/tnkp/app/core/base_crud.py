@@ -13,16 +13,34 @@ class BaseCRUD:
 
     @classmethod
     def create_router(cls, model: Type):
-        router = APIRouter(prefix=f"/{model.__tablename__}", tags=[model.__tablename__])
+        # 处理前缀，确保格式正确
+        prefix = f"/{model.__categoryname__.strip('/')}/{model.__tablename__}".replace("//", "/") if model.__categoryname__ else f"/{model.__tablename__}"
+        router = APIRouter(prefix=prefix, tags=[model.__tablename__])
+
+        url = f"/{model.__tablename__}"
+        if model.__categoryname__:
+            url = f"/{model.__categoryname__}/{model.__tablename__}"
+
         template_base = model.__tablename__
         pk_name = model.get_primary_key()
 
         def build_breadcrumbs(model, current_label, icon, tail=False):
-            return [
-                {"title": "Home", "href": "/", "icon": "fas fa-home"},
-                {"title": model.__tablename__, "href": f"/{model.__tablename__}", "icon": "fas fa-table"},
-                {"title": current_label, "icon": icon} if tail else None
-            ]
+            breadcrumbs = []
+
+            breadcrumbs.append({"title": "Home", "href": "/", "icon": "fas fa-home"})
+
+            if model.__categoryname__:
+                breadcrumbs.append({"title": model.__categoryname__, "href": f"/{model.__categoryname__}", "icon": "fas fa-layer-group"})
+
+                if model.__tablename__:
+                    breadcrumbs.append({"title": model.__tablename__, "href": f"/{model.__categoryname__}/{model.__tablename__}", "icon": "fas fa-table"})
+            
+            elif model.__tablename__:
+                breadcrumbs.append({"title": model.__tablename__, "href": f"/{model.__tablename__}", "icon": "fas fa-table"})
+            
+            breadcrumbs.append({"title": current_label, "icon": icon} if tail else None)
+
+            return breadcrumbs
 
         from app.utils.yaml_loader import get_model_config
         def get_fields(model):
@@ -59,6 +77,7 @@ class BaseCRUD:
                     "request": request,
                     "items": items,
                     "fields": fields,
+                    "model": model,
                     "table_name": model.__tablename__,
                     "model_name": model.__name__,
                     "page": page,
@@ -80,6 +99,7 @@ class BaseCRUD:
                     "request": request, 
                     "item": None,
                     "fields": fields,
+                    "model": model,
                     "table_name": model.__tablename__,
                     "model_name": model.__name__,
                     "pk_name": pk_name,
@@ -100,6 +120,7 @@ class BaseCRUD:
                     "request": request,
                     "item": item,
                     "fields": fields,
+                    "model": model,
                     "table_name": model.__tablename__,
                     "model_name": model.__name__,
                     "pk_name": pk_name,
@@ -114,14 +135,14 @@ class BaseCRUD:
 
                 if hasattr(model, "save_via_view"):
                     await model.save_via_view(form_data, db)
-                    return RedirectResponse(url=f"/{model.__tablename__}", status_code=303)
+                    return RedirectResponse(url=url, status_code=303)
 
                 item_data = {k: v for k, v in form_data.items() if v and k != pk_name}
                 item = model(**item_data)
                 db.add(item)
                 db.commit()
                 db.refresh(item)
-                return RedirectResponse(url=f"/{model.__tablename__}", status_code=303)
+                return RedirectResponse(url=url, status_code=303)
             except Exception as e:
                 raise HTTPException(status_code=400, detail=str(e))
 
@@ -142,6 +163,7 @@ class BaseCRUD:
                     "request": request,
                     "item": item,
                     "fields": fields,
+                    "model": model,
                     "table_name": model.__tablename__,
                     "model_name": model.__name__,
                     "pk_name": pk_name,
@@ -160,13 +182,14 @@ class BaseCRUD:
 
                 if hasattr(model, "save_via_view"):
                     await model.save_via_view(form_data, db)
-                    return RedirectResponse(url=f"/{model.__tablename__}", status_code=303)
+                    return RedirectResponse(url=url, status_code=303)
 
                 for key, value in form_data.items():
                     if hasattr(item, key) and key != pk_name:
                         setattr(item, key, value)
                 db.commit()
-                return RedirectResponse(url=f"/{model.__tablename__}", status_code=303)
+
+                return RedirectResponse(url=url, status_code=303)
             except Exception as e:
                 raise HTTPException(status_code=400, detail=str(e))
 

@@ -1,0 +1,12 @@
+view:
+  title: "ビュー"
+
+  quick_nav:
+    - name: "ユーザー活動ビュー"
+      path: "/view/v_user_activities"
+      icon: "fas fa-users"
+      color: "bg-gradient-to-r from-blue-500 to-blue-600"
+    - name: "作業サマリービュー"
+      path: "/view/v_work_summary"
+      icon: "fas fa-tasks"
+      color: "bg-gradient-to-r from-green-500 to-green-600"
